@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Memory Vault - Staging Area</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Newsreader:ital,wght@0,400;0,500;0,600;1,400;1,500;1,600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-dim": "#e0d8d7",
+                        "secondary-fixed": "#f1e0c3",
+                        "on-background": "#1e1b1b",
+                        "warm-sand": "#D4C4A8",
+                        "inverse-surface": "#342f2f",
+                        "tertiary-fixed": "#cee9d8",
+                        "inverse-on-surface": "#f8efee",
+                        "on-tertiary-fixed": "#082016",
+                        "surface-tint": "#785556",
+                        "tertiary": "#4b6457",
+                        "surface-container": "#f5eceb",
+                        "primary": "#785556",
+                        "on-surface-variant": "#504444",
+                        "on-secondary-container": "#6d614a",
+                        "primary-fixed": "#ffdad9",
+                        "primary-container": "#c49a9a",
+                        "border-delicate": "#E7E5E4",
+                        "surface-container-low": "#faf2f1",
+                        "primary-fixed-dim": "#e9bcbc",
+                        "on-primary": "#ffffff",
+                        "secondary": "#695d46",
+                        "tertiary-container": "#90aa9b",
+                        "on-primary-fixed-variant": "#5e3e3f",
+                        "secondary-fixed-dim": "#d5c5a9",
+                        "surface-container-highest": "#e9e1e0",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-lowest": "#ffffff",
+                        "soft-charcoal": "#2C2C2C",
+                        "secondary-container": "#efdec1",
+                        "on-surface": "#1e1b1b",
+                        "on-error": "#ffffff",
+                        "surface-container-high": "#efe6e5",
+                        "on-secondary-fixed": "#231a08",
+                        "on-secondary-fixed-variant": "#504530",
+                        "outline-variant": "#d4c3c2",
+                        "dusty-sage": "#DCE1D8",
+                        "surface-bright": "#fff8f7",
+                        "error-container": "#ffdad6",
+                        "on-secondary": "#ffffff",
+                        "outline": "#827473",
+                        "inverse-primary": "#e9bcbc",
+                        "on-tertiary-container": "#273f33",
+                        "on-primary-container": "#503233",
+                        "surface": "#fff8f7",
+                        "muted-terracotta": "#E8DCC4",
+                        "on-tertiary-fixed-variant": "#344c40",
+                        "on-error-container": "#93000a",
+                        "tertiary-fixed-dim": "#b2cdbd",
+                        "surface-variant": "#e9e1e0",
+                        "canvas-alabaster": "#FDFBF7",
+                        "on-primary-fixed": "#2d1415",
+                        "error": "#ba1a1a",
+                        "faded-rose": "#C49A9A",
+                        "background": "#fff8f7"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "fontFamily": {
+                        "persona-name": ["Newsreader"],
+                        "chat-text": ["Inter"],
+                        "body-md": ["Inter"],
+                        "h2": ["Newsreader"],
+                        "h1": ["Newsreader"],
+                        "label-caps": ["Inter"],
+                        "display": ["Newsreader"],
+                        "body-lg": ["Inter"]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 300, 'GRAD' 0, 'opsz' 24;
+        }
+        .ambient-soul-shader {
+            background: radial-gradient(circle at 10% 20%, rgba(232, 220, 196, 0.3) 0%, transparent 40%),
+                        radial-gradient(circle at 90% 80%, rgba(220, 225, 216, 0.3) 0%, transparent 40%);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-canvas-alabaster min-h-screen text-on-surface font-body-md selection:bg-faded-rose/30">
+<!-- TopAppBar -->
+<header class="bg-stone-50/80 dark:bg-stone-950/80 backdrop-blur-md border-b border-stone-200/50 dark:border-stone-800/50 shadow-sm shadow-stone-200/20 docked full-width top-0 sticky z-40">
+<div class="flex justify-between items-center w-full px-6 py-4 max-w-2xl mx-auto">
+<button class="text-stone-800 dark:text-stone-200 hover:opacity-70 transition-opacity duration-300 active:scale-95 transition-transform">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<h1 class="font-serif italic text-lg font-serif font-semibold text-stone-900 dark:text-stone-50">Memory Vault</h1>
+<div class="w-8 h-8 rounded-full bg-stone-200 flex items-center justify-center overflow-hidden border border-stone-300">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A warm, soft-focus portrait of an elderly woman with silver hair and kind eyes. She is wearing a soft cream-colored knitted sweater, and the lighting is golden and cinematic, reminiscent of a nostalgic film photograph. The background is a blurred library with leather-bound books, reinforcing a sense of wisdom and heritage." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAOIjp6f9cyPjySeNPW4Bs2bwncJh0j6RcUk4OLTvd3H7X03GTkPl8Xen4-QNrZfNa4zL9IlYAcZejrwBMQZb-bSD2waaUYJh10kjTITHaIcMjRr3XP44hBxwIbg6ygAPjMxLq93M-_n92yXaxg-XnGUS54C2hTGb-o_WEpm5sS4hwx3CEtvbH32kJP96uEwBMuTwEPfB0OUM6y0lxzpXLzSk010u8nMYaCipoc4nVv1zzMyh_1aQNX8Knkyf9hcOAsDPbY2IQ_J8Ru"/>
+</div>
+</div>
+</header>
+<main class="max-w-2xl mx-auto px-6 pt-8 pb-48 ambient-soul-shader min-h-[calc(100vh-140px)]">
+<!-- Header Text -->
+<div class="mb-10 text-center">
+<h2 class="font-h1 text-h1 text-primary mb-2">The Staging Area</h2>
+<p class="font-body-md text-on-surface-variant max-w-sm mx-auto">Gather the fragments of the past here before we begin the distillation process.</p>
+</div>
+<!-- Upload Zone -->
+<section class="relative group cursor-pointer mb-12">
+<div class="border-2 border-dashed border-stone-200 rounded-3xl p-12 flex flex-col items-center justify-center bg-white/40 backdrop-blur-sm transition-all duration-500 hover:border-faded-rose/50 hover:bg-white/60 shadow-[0_10px_30px_rgba(232,220,196,0.15)] group-active:scale-[0.98]">
+<div class="w-16 h-16 bg-muted-terracotta/20 rounded-full flex items-center justify-center mb-6 text-faded-rose">
+<span class="material-symbols-outlined text-4xl" data-icon="cloud_upload">cloud_upload</span>
+</div>
+<h3 class="font-h2 text-h2 text-secondary mb-1">Drop memories here...</h3>
+<p class="font-body-md text-on-surface-variant">Select files to distill into heritage</p>
+<!-- Magical Glow Ornament -->
+<div class="absolute -z-10 inset-0 bg-muted-terracotta/10 blur-2xl rounded-full opacity-0 group-hover:opacity-100 transition-opacity duration-700"></div>
+</div>
+</section>
+<!-- Staged Memories List -->
+<section>
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-label-caps text-label-caps text-stone-400 uppercase tracking-widest">Staged Memories</h3>
+<span class="text-[11px] font-medium bg-stone-100 px-2 py-0.5 rounded-full text-stone-500">3 Items</span>
+</div>
+<div class="space-y-4">
+<!-- Recipe Item -->
+<div class="group flex items-center p-5 bg-white border border-border-delicate rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_20px_rgba(0,0,0,0.04)]">
+<div class="w-12 h-12 bg-dusty-sage/30 rounded-xl flex items-center justify-center text-tertiary mr-4">
+<span class="material-symbols-outlined" data-icon="description">description</span>
+</div>
+<div class="flex-grow">
+<p class="font-persona-name text-[17px] text-on-surface">Mom's Recipes.txt</p>
+<p class="text-[13px] text-stone-400">Added just now • 12 KB</p>
+</div>
+<button class="text-stone-300 hover:text-error transition-colors p-2">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+<!-- Audio Item -->
+<div class="group flex items-center p-5 bg-white border border-border-delicate rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_20px_rgba(0,0,0,0.04)]">
+<div class="w-12 h-12 bg-secondary-container/40 rounded-xl flex items-center justify-center text-secondary mr-4">
+<span class="material-symbols-outlined" data-icon="settings_voice">settings_voice</span>
+</div>
+<div class="flex-grow">
+<p class="font-persona-name text-[17px] text-on-surface">Voicemail from 2014.mp3</p>
+<p class="text-[13px] text-stone-400">Added 2 mins ago • 4.2 MB</p>
+</div>
+<button class="text-stone-300 hover:text-error transition-colors p-2">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+<!-- Photo Item -->
+<div class="group flex items-center p-5 bg-white border border-border-delicate rounded-2xl shadow-[0_4px_12px_rgba(0,0,0,0.02)] transition-all hover:shadow-[0_8px_20px_rgba(0,0,0,0.04)]">
+<div class="w-12 h-12 rounded-xl overflow-hidden mr-4">
+<img alt="Summer House" class="w-full h-full object-cover" data-alt="A nostalgic, painterly photograph of an old white Victorian summer house during golden hour. The sunlight filters through large weeping willow trees, casting long, soft shadows across a perfectly manicured lawn. The color palette is dominated by warm ambers, soft greens, and cream tones, evoking a sense of peaceful childhood summers and lasting family heritage." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVQ9xsns8yZ5ZOrsRgMdHUrn5LXSUxN7pRXXva2VGdohEMb_rRPBUyk1-sltELid8845p-TR4jqRMroUS6jslNvxq8RzSp_drsxTvaOTc4Sr-Xd-58BVLVgzIBHIX2zsTAo5iRwyup-9ogN8hbHwGRC8BKE0Nzq7FcrnO8UFQ_JVhG468e9wSOSC_iqe0zRf8iipLcpt-jwDolmH7G4gFY7aNAQRRqvdrWsVeEdiYob9_n9o6ki8htBikoWeHs1XJpCP1WaIawfxc0"/>
+</div>
+<div class="flex-grow">
+<p class="font-persona-name text-[17px] text-on-surface">Summer_House.jpg</p>
+<p class="text-[13px] text-stone-400">Added 5 mins ago • 2.1 MB</p>
+</div>
+<button class="text-stone-300 hover:text-error transition-colors p-2">
+<span class="material-symbols-outlined" data-icon="close">close</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- Fixed Bottom Action Area -->
+<div class="fixed bottom-20 left-0 w-full px-6 py-8 z-30 pointer-events-none">
+<div class="max-w-2xl mx-auto flex justify-center">
+<button class="pointer-events-auto w-full max-w-xs bg-soft-charcoal text-white font-body-lg py-5 rounded-full shadow-2xl shadow-stone-900/20 hover:bg-stone-800 transition-all duration-300 active:scale-95 flex items-center justify-center gap-3">
+<span class="material-symbols-outlined" data-icon="auto_fix_high" style="font-variation-settings: 'FILL' 1;">auto_fix_high</span>
+                Begin Distillation
+            </button>
+</div>
+</div>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 py-3 bg-stone-50/90 dark:bg-stone-950/90 backdrop-blur-lg border-t border-stone-200 dark:border-stone-800 z-50">
+<a class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-600 hover:text-stone-600 dark:hover:text-stone-300 transition-colors duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="auto_stories">auto_stories</span>
+<span class="font-serif text-[11px] tracking-wide">Journal</span>
+</a>
+<a class="flex flex-col items-center justify-center text-[#C49A9A] dark:text-[#D4AFAF] bg-stone-100/50 dark:bg-stone-900/50 rounded-xl px-3 py-1" href="#">
+<span class="material-symbols-outlined" data-icon="inventory_2" style="font-variation-settings: 'FILL' 1;">inventory_2</span>
+<span class="font-serif text-[11px] tracking-wide">Vault</span>
+</a>
+<a class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-600 hover:text-stone-600 dark:hover:text-stone-300 transition-colors duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="auto_fix_high">auto_fix_high</span>
+<span class="font-serif text-[11px] tracking-wide">Distill</span>
+</a>
+<a class="flex flex-col items-center justify-center text-stone-400 dark:text-stone-600 hover:text-stone-600 dark:hover:text-stone-300 transition-colors duration-300" href="#">
+<span class="material-symbols-outlined" data-icon="history_edu">history_edu</span>
+<span class="font-serif text-[11px] tracking-wide">Heirloom</span>
+</a>
+</nav>
+</body></html>

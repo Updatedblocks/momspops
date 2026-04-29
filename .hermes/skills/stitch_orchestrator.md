@@ -43,10 +43,9 @@ Every Stitch prompt MUST include:
 
 ## Error Recovery
 If Stitch returns "Requested entity was not found":
-1. Verify project ID format: `projects/<numeric_id>`
-2. Check `list_projects` to confirm project exists
-3. Try `list_screens` to verify project access
-4. API key may have read-only permissions — generate won't work
+1. **CRITICAL: Use NUMERIC-ONLY project ID.** `"11193248202368489125"` — NOT `"projects/11193248202368489125"`. The `list_projects` response includes a `projects/` prefix on `name`, but `generate_screen_from_text` expects the bare numeric string.
+2. Verify the project is `TEXT_TO_UI_PRO` type — `PROJECT_DESIGN` projects (from `create_project`) cannot receive generated screens.
+3. Prefer reusing the existing "Intimate Chat Interface" project (ID: `11193248202368489125`) which already has our DESIGN.md tokens baked into its theme.
 
 ## Manual Fallback
 When Stitch generation is unavailable, build UI manually using:
