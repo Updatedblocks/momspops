@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Newsreader } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import GlobalProviders from "@/components/GlobalProviders";
 import AuthProvider from "@/components/AuthProvider";
 import "./globals.css";
@@ -37,6 +38,7 @@ export default function RootLayout({
         <AuthProvider>
           <GlobalProviders>{children}</GlobalProviders>
         </AuthProvider>
+        <Analytics />
       </body>
     </html>
   );
