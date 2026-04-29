@@ -1,7 +1,20 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
+
+declare global {
+  interface Window {
+    turnstile: {
+      render: (el: string | HTMLElement, opts: Record<string, unknown>) => string;
+      reset: (widgetId: string) => void;
+      remove: (widgetId: string) => void;
+    };
+    onTurnstileLoad: () => void;
+  }
+}
+
+const TURNSTILE_SITE_KEY = process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY ?? "";
 
 export default function WelcomePage() {
   const [mode, setMode] = useState<"signin" | "signup">("signin");
@@ -11,9 +24,37 @@ export default function WelcomePage() {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState<string | null>(null);
   const [error, setError] = useState("");
+  const [turnstileToken, setTurnstileToken] = useState("");
+  const [tsReady, setTsReady] = useState(false);
+  const tsWidgetRef = useRef<string | null>(null);
+  const tsContainerRef = useRef<HTMLDivElement>(null);
 
   const supabase = createClient();
   const origin = typeof window !== "undefined" ? window.location.origin : "";
+
+  // ── Load Turnstile ────────────────────────────────────
+  useEffect(() => {
+    if (!TURNSTILE_SITE_KEY) return;
+    window.onTurnstileLoad = () => setTsReady(true);
+    const script = document.createElement("script");
+    script.src = "https://challenges.cloudflare.com/turnstile/v0/api.js?onload=onTurnstileLoad";
+    script.async = true;
+    script.defer = true;
+    document.head.appendChild(script);
+  }, []);
+
+  // ── Render / reset widget when mode or error changes ──
+  useEffect(() => {
+    if (!tsReady || !tsContainerRef.current || !TURNSTILE_SITE_KEY) return;
+    if (tsWidgetRef.current) window.turnstile.remove(tsWidgetRef.current);
+    setTurnstileToken("");
+    tsWidgetRef.current = window.turnstile.render(tsContainerRef.current, {
+      sitekey: TURNSTILE_SITE_KEY,
+      callback: (token: string) => setTurnstileToken(token),
+      theme: "light",
+      size: "flexible",
+    });
+  }, [tsReady, mode, error]);
 
   // ── Quick Sign-In: Google ──────────────────────────────
   const handleGoogleSignIn = async () => {
@@ -59,16 +100,22 @@ export default function WelcomePage() {
       setError("Email and password are required.");
       return;
     }
+    if (TURNSTILE_SITE_KEY && !turnstileToken) {
+      setError("Please complete the captcha.");
+      return;
+    }
     setLoading("manual");
     const { error: err } = await supabase.auth.signInWithPassword({
       email: email.trim(),
       password,
+      options: turnstileToken ? { captchaToken: turnstileToken } : undefined,
     });
     setLoading(null);
     if (err) {
       setError(err.message);
+      if (tsWidgetRef.current) window.turnstile?.reset(tsWidgetRef.current);
+      setTurnstileToken("");
     }
-    // On success, middleware redirects to /library
   };
 
   // ── Manual Auth: Sign Up ───────────────────────────────
@@ -83,6 +130,10 @@ export default function WelcomePage() {
       setError("Password must be at least 6 characters.");
       return;
     }
+    if (TURNSTILE_SITE_KEY && !turnstileToken) {
+      setError("Please complete the captcha.");
+      return;
+    }
     setLoading("manual");
     const { error: err } = await supabase.auth.signUp({
       email: email.trim(),
@@ -90,11 +141,14 @@ export default function WelcomePage() {
       options: {
         data: { full_name: username.trim() || email.trim().split("@")[0] },
         emailRedirectTo: `${origin}/auth/callback`,
+        ...(turnstileToken ? { captchaToken: turnstileToken } : {}),
       },
     });
     setLoading(null);
     if (err) {
       setError(err.message);
+      if (tsWidgetRef.current) window.turnstile?.reset(tsWidgetRef.current);
+      setTurnstileToken("");
     } else {
       setError("");
       alert("Account created! Check your email to confirm your address, then sign in.");
@@ -239,6 +293,14 @@ export default function WelcomePage() {
             minLength={6}
             className="w-full py-3.5 px-5 rounded-2xl bg-surface text-primary border border-subtle shadow-sm placeholder:text-secondary/50 outline-none focus:border-rose/50 transition-colors"
           />
+
+          {/* Turnstile captcha */}
+          {TURNSTILE_SITE_KEY && (
+            <div
+              ref={tsContainerRef}
+              className="flex justify-center py-1"
+            />
+          )}
 
           <button
             type="submit"
