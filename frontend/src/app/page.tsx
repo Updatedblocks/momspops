@@ -198,11 +198,14 @@ export default function WelcomePage() {
 
         {!emailMode ? (
           <button
-            onClick={handleEmailSignIn}
-            className="w-full py-3.5 rounded-2xl font-medium flex items-center justify-center gap-3 bg-surface text-primary border border-subtle shadow-sm btn-press"
+            disabled
+            className="w-full py-3.5 rounded-2xl font-medium flex items-center justify-center gap-3 bg-surface/50 text-secondary/40 border border-subtle/40 cursor-not-allowed"
           >
             <span className="material-symbols-outlined text-xl">mail</span>
             <span>Sign in with Email Link</span>
+            <span className="text-[10px] font-bold uppercase tracking-wider bg-rose/10 text-rose/60 px-2 py-0.5 rounded-full ml-1">
+              Soon
+            </span>
           </button>
         ) : (
           <div className="space-y-3">
@@ -227,93 +230,50 @@ export default function WelcomePage() {
         )}
 
         {/* ── Divider ────────────────────────────────── */}
-        <div className="flex items-center gap-3 py-2">
+        <div className="flex items-center gap-3 py-2 opacity-40">
           <span className="flex-1 h-px bg-subtle/60" />
-          <span className="text-xs text-secondary/60 uppercase tracking-wider">or</span>
+          <span className="text-xs text-secondary/60 uppercase tracking-wider">coming soon</span>
           <span className="flex-1 h-px bg-subtle/60" />
         </div>
 
-        {/* ── Manual Auth Toggle ─────────────────────── */}
-        <div className="flex bg-surface rounded-2xl border border-subtle p-1">
-          <button
-            onClick={() => { setMode("signin"); setError(""); }}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              mode === "signin"
-                ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 shadow-sm"
-                : "text-secondary hover:text-primary"
-            }`}
-          >
-            Sign In
-          </button>
-          <button
-            onClick={() => { setMode("signup"); setError(""); }}
-            className={`flex-1 py-2.5 rounded-xl text-sm font-medium transition-all ${
-              mode === "signup"
-                ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 shadow-sm"
-                : "text-secondary hover:text-primary"
-            }`}
-          >
-            Sign Up
-          </button>
-        </div>
-
-        {/* ── Manual Auth Form ──────────────────────── */}
-        <form onSubmit={handleSubmit} className="space-y-3">
-          {error && (
-            <p className="text-xs text-error bg-red-50 dark:bg-red-950/30 rounded-xl px-4 py-2.5 text-center">
-              {error}
-            </p>
-          )}
-
-          {mode === "signup" && (
+        {/* ── Manual Auth (disabled) ─────────────────── */}
+        <div className="relative">
+          <div className="flex bg-surface/50 rounded-2xl border border-subtle/40 p-1 opacity-40 pointer-events-none">
+            <button
+              className="flex-1 py-2.5 rounded-xl text-sm font-medium text-secondary/40"
+            >
+              Sign In
+            </button>
+            <button
+              className="flex-1 py-2.5 rounded-xl text-sm font-medium text-secondary/40"
+            >
+              Sign Up
+            </button>
+          </div>
+          <div className="space-y-3 mt-3 opacity-40 pointer-events-none">
             <input
-              type="text"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              placeholder="Username"
-              className="w-full py-3.5 px-5 rounded-2xl bg-surface text-primary border border-subtle shadow-sm placeholder:text-secondary/50 outline-none focus:border-rose/50 transition-colors"
+              type="email"
+              placeholder="Email"
+              disabled
+              className="w-full py-3.5 px-5 rounded-2xl bg-surface/50 text-secondary/40 border border-subtle/40 placeholder:text-secondary/30 outline-none"
             />
-          )}
-
-          <input
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            placeholder="Email"
-            required
-            className="w-full py-3.5 px-5 rounded-2xl bg-surface text-primary border border-subtle shadow-sm placeholder:text-secondary/50 outline-none focus:border-rose/50 transition-colors"
-          />
-
-          <input
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            placeholder="Password"
-            required
-            minLength={6}
-            className="w-full py-3.5 px-5 rounded-2xl bg-surface text-primary border border-subtle shadow-sm placeholder:text-secondary/50 outline-none focus:border-rose/50 transition-colors"
-          />
-
-          {/* Turnstile captcha */}
-          {TURNSTILE_SITE_KEY && (
-            <div
-              ref={tsContainerRef}
-              className="flex justify-center py-1"
+            <input
+              type="password"
+              placeholder="Password"
+              disabled
+              className="w-full py-3.5 px-5 rounded-2xl bg-surface/50 text-secondary/40 border border-subtle/40 placeholder:text-secondary/30 outline-none"
             />
-          )}
-
-          <button
-            type="submit"
-            disabled={loading === "manual"}
-            className="w-full py-3.5 rounded-2xl font-bold bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 shadow-sm btn-press"
-          >
-            {loading === "manual"
-              ? "Please wait..."
-              : mode === "signin"
-                ? "Sign In"
-                : "Create Account"}
-          </button>
-        </form>
+            <button
+              disabled
+              className="w-full py-3.5 rounded-2xl font-bold bg-stone-900/20 text-white/30 dark:bg-stone-100/20 dark:text-stone-900/30 cursor-not-allowed"
+            >
+              Sign In
+            </button>
+          </div>
+          <span className="absolute -top-2 right-2 text-[10px] font-bold uppercase tracking-wider bg-rose/10 text-rose/60 px-2 py-0.5 rounded-full">
+            Soon
+          </span>
+        </div>
       </div>
 
       {/* Footer */}
