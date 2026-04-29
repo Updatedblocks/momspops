@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Inter, Newsreader } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
 import { SpeedInsights } from "@vercel/speed-insights/next";
 import GlobalProviders from "@/components/GlobalProviders";
 import AuthProvider from "@/components/AuthProvider";
@@ -38,6 +39,7 @@ export default function RootLayout({
         <AuthProvider>
           <GlobalProviders>{children}</GlobalProviders>
         </AuthProvider>
+        <Analytics />
         <SpeedInsights />
       </body>
     </html>
