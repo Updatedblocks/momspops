@@ -4,46 +4,30 @@ import { NextResponse, type NextRequest } from "next/server";
 export async function GET(request: NextRequest) {
   const { searchParams, origin } = new URL(request.url);
   const code = searchParams.get("code");
-  const token_hash = searchParams.get("token_hash");
-  const type = searchParams.get("type");
   const next = searchParams.get("next") ?? "/library";
 
-  // Create the redirect response FIRST — cookies will be set ON it
-  const response = NextResponse.redirect(`${origin}${next}`);
-
-  const supabase = createServerClient(
-    process.env.NEXT_PUBLIC_SUPABASE_URL!,
-    process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
-    {
-      cookies: {
-        getAll() {
-          return request.cookies.getAll();
-        },
-        setAll(cookiesToSet) {
-          cookiesToSet.forEach(({ name, value, options }) =>
-            response.cookies.set(name, value, options),
-          );
+  if (code) {
+    const supabase = createServerClient(
+      process.env.NEXT_PUBLIC_SUPABASE_URL!,
+      process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!,
+      {
+        cookies: {
+          getAll() {
+            return request.cookies.getAll();
+          },
+          setAll(cookiesToSet) {
+            cookiesToSet.forEach(({ name, value, options }) =>
+              response.cookies.set(name, value, options),
+            );
+          },
         },
       },
-    },
-  );
+    );
 
-  // ── Check if Supabase already authenticated us (PKCE magic link flow) ──
-  const { data: { user } } = await supabase.auth.getUser();
-  if (user) return response;
-
-  // ── OAuth (Google, Apple) — exchange code for session ──
-  if (code) {
+    // Declare response BEFORE exchangeCodeForSession —
+    // setAll writes cookies onto it during the exchange
+    const response = NextResponse.redirect(`${origin}${next}`);
     const { error } = await supabase.auth.exchangeCodeForSession(code);
-    if (!error) return response;
-  }
-
-  // ── Magic Link / OTP (legacy direct flow) ──
-  if (token_hash && type) {
-    const { error } = await supabase.auth.verifyOtp({
-      token_hash,
-      type: type as "email" | "recovery" | "invite",
-    });
     if (!error) return response;
   }
 
