@@ -2,8 +2,10 @@
 
 import { useState, useRef, useCallback } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import BottomNav from "@/components/BottomNav";
 import { useSettingsStore } from "@/store/useSettingsStore";
+import { createClient } from "@/utils/supabase/client";
 
 interface SelectedFile {
   id: string;
@@ -25,9 +27,12 @@ function fileIcon(type: string): string {
 }
 
 export default function DistillPage() {
+  const router = useRouter();
   const avatarUrl = useSettingsStore((s) => s.profile.avatarUrl);
+  const userId = useSettingsStore((s) => s.user.id);
   const [files, setFiles] = useState<SelectedFile[]>([]);
   const [isDragging, setIsDragging] = useState(false);
+  const [isDistilling, setIsDistilling] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const dragCounter = useRef(0);
 
@@ -82,11 +87,62 @@ export default function DistillPage() {
     e.target.value = "";
   };
 
-  const handleDistill = () => {
-    // TODO: Wire to Supabase upload + Gemini distillation pipeline
-    alert(
-      `Ready to distill ${files.length} file${files.length !== 1 ? "s" : ""}. This will be wired to the Gemini pipeline.`
-    );
+  const handleDistill = async () => {
+    if (files.length === 0 || isDistilling || !userId) return;
+    setIsDistilling(true);
+
+    try {
+      const supabase = createClient();
+      const batchId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+      const storagePath = `${userId}/${batchId}`;
+
+      // ── Upload all files to Supabase Storage ──────────────
+      for (const f of files) {
+        const { error: uploadError } = await supabase.storage
+          .from("memories")
+          .upload(`${storagePath}/${f.file.name}`, f.file, {
+            cacheControl: "3600",
+            upsert: false,
+          });
+
+        if (uploadError) {
+          console.error(`Failed to upload ${f.file.name}:`, uploadError.message);
+          alert(`Upload failed: ${uploadError.message}`);
+          setIsDistilling(false);
+          return;
+        }
+      }
+
+      // ── Invoke Edge Function for distillation ────────────
+      const { data, error: fnError } = await supabase.functions.invoke(
+        "distill-soul",
+        {
+          body: {
+            userId,
+            batchId,
+            personaName: "Distilled Soul",
+            personaRelation: "Loved One",
+          },
+        },
+      );
+
+      if (fnError || !data?.success) {
+        console.error("Distillation failed:", fnError || data);
+        alert(
+          `Distillation failed: ${fnError?.message || data?.error || "Unknown error"
+          }`,
+        );
+        setIsDistilling(false);
+        return;
+      }
+
+      // ── Redirect to Soul Library ─────────────────────────
+      router.push("/library");
+    } catch (err) {
+      console.error("Distillation error:", err);
+      alert(`Something went wrong: ${(err as Error).message}`);
+      setIsDistilling(false);
+    }
   };
 
   return (
@@ -257,16 +313,18 @@ export default function DistillPage() {
         <div className="flex flex-col items-center gap-4 pt-4 animate-fade-in-up stagger-3">
           <button
             onClick={handleDistill}
-            disabled={files.length === 0}
+            disabled={files.length === 0 || isDistilling}
             className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 btn-press ${
-              files.length > 0
+              files.length > 0 && !isDistilling
                 ? "bg-[#2C2C2C] text-[#FDFBF7] hover:shadow-lg hover:-translate-y-0.5"
                 : "bg-stone-200 text-stone-400 cursor-not-allowed"
             }`}
           >
-            {files.length > 0
-              ? `Begin Distillation — ${files.length} file${files.length !== 1 ? "s" : ""}`
-              : "Add memories to begin"}
+            {isDistilling
+              ? "Distilling... This may take a moment"
+              : files.length > 0
+                ? `Begin Distillation — ${files.length} file${files.length !== 1 ? "s" : ""}`
+                : "Add memories to begin"}
           </button>
           <p className="text-xs text-stone-400 text-center max-w-xs">
             Your memories are encrypted, private, and never used to train public
