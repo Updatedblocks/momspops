@@ -1,0 +1,140 @@
+Moms&Pops — Session Walkthrough (2026-04-29)
+==============================================
+
+PHASE 2.1: AUTH PIPELINE FIXES
+-------------------------------
+
+1. Google OAuth "provider not enabled" error
+   - Cause: Google provider wasn't toggled on in Supabase dashboard
+   - Fix: Enable at Authentication → Providers in Supabase project
+   - Also need Google Cloud Console OAuth credentials (Client ID + Secret)
+
+2. Auth callback redirect loop
+   - Symptom: Google sign-in worked (user created) but browser landed back
+     at / instead of /library
+   - Root cause: src/app/auth/callback/route.ts was setting session cookies
+     on an intermediate NextResponse.next() but returning a bare
+     NextResponse.redirect() — cookies dropped, middleware saw no session,
+     kicked user back to /
+   - Fix: Create the redirect response FIRST, let exchangeCodeForSession
+     write cookies directly onto it via the setAll callback
+
+PHASE 2.2: DATABASE SCHEMA + AUTH STATE SYNC
+---------------------------------------------
+
+3. Database schema scaffolded
+   - File: supabase/migrations/001_initial_schema.sql
+   - Tables: profiles, user_settings, personas
+   - RLS enabled on all three with per-user policies
+   - Auto-provisioning trigger: inserts profile + settings row on sign-up
+   - Deploy via: Supabase SQL Editor at project dashboard
+
+4. Zustand store extended with auth state
+   - File: frontend/src/store/useSettingsStore.ts
+   - Added: AuthUser interface (id, email, isAuthenticated)
+   - Added: setUser() and clearAuth() actions
+   - clearAuth() resets personas + profile to defaults on logout
+   - user field excluded from localStorage persistence (partialize)
+
+5. AuthProvider component
+   - File: frontend/src/components/AuthProvider.tsx
+   - Hydrates session on mount (getSession)
+   - Subscribes to onAuthStateChange for sign-in/sign-out/token refresh
+   - Syncs session → Zustand (user + profile)
+   - Extracts fullName, displayName (first name), email, avatarUrl from
+     Google's user_metadata (full_name, avatar_url)
+
+6. AuthProvider injected into layout
+   - File: frontend/src/app/layout.tsx
+   - AuthProvider wraps GlobalProviders so auth state is available everywhere
+
+7. Log Out wired
+   - File: frontend/src/app/settings/page.tsx
+   - Link → button with handleLogout: signOut() → clearAuth() → router.push('/')
+
+PHASE 2.3: PROFILE SYNC + AVATAR WIRING
+----------------------------------------
+
+8. ProfileData extended with avatarUrl
+   - File: frontend/src/store/useSettingsStore.ts
+   - Added avatarUrl field to ProfileData interface + default
+
+9. Avatar wired across all pages
+   - Settings page (settings/page.tsx): header avatar → store avatarUrl,
+     material "person" icon fallback
+   - Edit Profile (settings/profile/page.tsx): large avatar → store,
+     same fallback
+   - Soul Library (library/page.tsx): top-left avatar → store + fallback
+   - Heirloom/Distill (distill/page.tsx): top-right avatar → store + fallback
+   - All avatars include referrerPolicy="no-referrer" for Google images
+
+10. Avatar button navigation
+    - Library header avatar → Link to /settings/profile
+    - Distill header avatar → Link to /settings/profile
+    - Both use btn-press for tap feedback
+
+PAYWALL FIXES
+-------------
+
+11. Paywall component overhaul
+    - File: frontend/src/components/Paywall.tsx
+    - Replaced <dialog> + showModal() with plain <div> overlay
+      (native dialog API fights React event handling)
+    - X button moved to fixed positioning (z-[110]) — completely
+      independent of card overflow/border-radius clipping
+    - X button styling: bg-black/40, border-white/20, backdrop-blur
+    - X button final position: fixed right-8 top-10
+    - Backdrop click closes, card clicks stopPropagation
+    - Escape key handler via useEffect
+    - Scrolling: overflow-y-auto on outermost div
+
+12. Tier card hover animations
+    - Unselected: md:hover:shadow-lg, md:hover:-translate-y-1,
+      md:hover:scale-[1.02], md:hover:border-rose/30
+    - Selected: md:hover:-translate-y-1.5, md:hover:shadow-2xl
+    - Scoped to md: breakpoint — no hover on mobile/touch
+    - Gradient overlay fades in on group-hover (all devices)
+
+CHAT INPUT AREA FIXES
+---------------------
+
+13. Gap between input bar and BottomNav
+    - File: frontend/src/app/chat/[id]/page.tsx
+    - Symptom: Messages visible through a light gap between input
+      bar and BottomNav
+    - Cause: BottomNav bg-base/85 semi-transparent + mb-[72px] on input
+      area left a seam
+    - Fix: Changed mb-[72px] to pb-[72px] — input area's solid bg-surface
+      extends 72px down behind BottomNav, no gap
+
+14. Mic and + button separation
+    - Added vertical divider (w-px h-6 bg-subtle/50) between mic and +
+    - Both buttons get hover:bg-stone-100 for visual feedback
+    - Both buttons get border-2 border-subtle/80 (2px golden outline)
+
+15. Input bar fully opaque
+    - Changed bg-surface/95 backdrop-blur-md → bg-surface
+    - No more translucent bleed-through
+
+
+FILES CHANGED THIS SESSION
+==========================
+
+  supabase/migrations/001_initial_schema.sql    — CREATED
+  frontend/src/store/useSettingsStore.ts         — MODIFIED (auth state, avatarUrl)
+  frontend/src/components/AuthProvider.tsx       — CREATED
+  frontend/src/app/layout.tsx                    — MODIFIED (AuthProvider wrapper)
+  frontend/src/app/auth/callback/route.ts        — MODIFIED (cookie fix)
+  frontend/src/app/settings/page.tsx             — MODIFIED (logout, avatar)
+  frontend/src/app/settings/profile/page.tsx     — MODIFIED (avatarUrl field)
+  frontend/src/app/library/page.tsx              — MODIFIED (avatar, navigation)
+  frontend/src/app/distill/page.tsx              — MODIFIED (avatar, navigation)
+  frontend/src/components/Paywall.tsx            — MODIFIED (dialog→div, X btn, hover)
+  frontend/src/app/chat/[id]/page.tsx            — MODIFIED (gap, buttons, borders)
+
+
+SUPABASE PROJECT
+================
+  URL: https://lxwzvdmpwrxaxinlgfxa.supabase.co
+  SQL Editor: /sql/new
+  Auth Providers: /auth/providers

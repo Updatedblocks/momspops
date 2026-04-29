@@ -1,0 +1,17 @@
+{
+  "project_name": "Moms&Pops",
+  "mission": "Achieve $1M MRR by delivering a highly nuanced, emotionally intelligent AI platform simulating digital personas of loved ones.",
+  "core_tenets": [
+    "Soul Architecture (Distillation > RAG)",
+    "Asynchronous Spontaneity (Event-driven interactions)",
+    "Cloud-Native Scalability (Dockerized microservices)"
+  ],
+  "tech_stack": {
+    "frontend": "Next.js/React",
+    "backend": "FastAPI (Python)",
+    "database": "PostgreSQL",
+    "cache_queue": "Redis + Celery/BullMQ",
+    "infrastructure": "Docker"
+  },
+  "current_phase": "Phase 1 - Infrastructure & Agent Bootstrapping"
+}

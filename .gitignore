@@ -1,0 +1,35 @@
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc
+*.pyo
+.venv/
+venv/
+.env
+.env.local
+.env.*.local
+
+# Build artifacts
+.next/
+dist/
+build/
+*.egg-info/
+
+# OS files
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*~
+
+# IDE
+.idea/
+.vscode/
+*.code-workspace
+
+# Docker
+*.log
+
+# Terraform
+.terraform/
+terraform.tfstate*
