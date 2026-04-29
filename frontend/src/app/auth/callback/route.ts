@@ -28,13 +28,17 @@ export async function GET(request: NextRequest) {
     },
   );
 
-  // ── OAuth (Google, Apple) ────────────────────────────
+  // ── Check if Supabase already authenticated us (PKCE magic link flow) ──
+  const { data: { user } } = await supabase.auth.getUser();
+  if (user) return response;
+
+  // ── OAuth (Google, Apple) — exchange code for session ──
   if (code) {
     const { error } = await supabase.auth.exchangeCodeForSession(code);
     if (!error) return response;
   }
 
-  // ── Magic Link / Email OTP ───────────────────────────
+  // ── Magic Link / OTP (legacy direct flow) ──
   if (token_hash && type) {
     const { error } = await supabase.auth.verifyOtp({
       token_hash,
