@@ -3,7 +3,7 @@
 // Flow: JWT auth → download raw files → Gemini extraction → save soul_profile → burn files
 
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
-import { GoogleGenerativeAI } from "npm:@google/generative-ai@0.21.0";
+import { SignJWT, importPKCS8 } from "https://deno.land/x/jose@v5.2.0/index.ts";
 
 // ── 40-point Soul Schema (summarized for Gemini) ──────────────
 const SOUL_SCHEMA = {
@@ -233,42 +233,109 @@ Deno.serve(async (req: Request) => {
     const combinedText = textParts.join("\n");
     console.log(`Combined text: ${combinedText.length} chars`);
 
-    // ── Gemini 1.5 Pro Extraction ───────────────────────────
-    const geminiKey = Deno.env.get("GEMINI_API_KEY");
-    if (!geminiKey) {
-      await burnFiles(allFileNames, storagePrefix);
-      return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured" }), {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    // ── Vertex AI Gemini 1.5 Pro Extraction ──────────────────
+    const serviceAccountRaw = Deno.env.get("GCP_SERVICE_ACCOUNT");
+    const projectId = Deno.env.get("GCP_PROJECT_ID");
 
-    const genAI = new GoogleGenerativeAI(geminiKey);
-    const model = genAI.getGenerativeModel({
-      model: "gemini-1.5-pro-latest",
-      generationConfig: {
-        responseMimeType: "application/json",
-        temperature: 0.3,
-        maxOutputTokens: 8192,
-      },
-    });
-
-    const prompt = `${SYSTEM_PROMPT}\n\nRAW COMMUNICATIONS:\n${combinedText.slice(0, 900000)}`;
-    console.log("Calling Gemini 1.5 Pro...");
-
-    let responseText: string;
-    try {
-      const result = await model.generateContent(prompt);
-      responseText = result.response.text();
-    } catch (geminiErr) {
-      console.error("Gemini call failed:", geminiErr);
+    if (!serviceAccountRaw || !projectId) {
       await burnFiles(allFileNames, storagePrefix);
       return new Response(
-        JSON.stringify({ error: "Gemini extraction failed", detail: (geminiErr as Error).message }),
+        JSON.stringify({ error: "GCP_SERVICE_ACCOUNT or GCP_PROJECT_ID not configured" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
-    console.log(`Gemini response: ${responseText.length} chars`);
+
+    let sa: { client_email: string; private_key: string };
+    try {
+      sa = JSON.parse(serviceAccountRaw);
+    } catch {
+      await burnFiles(allFileNames, storagePrefix);
+      return new Response(
+        JSON.stringify({ error: "Invalid GCP_SERVICE_ACCOUNT JSON" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // ── Sign JWT for OAuth2 ─────────────────────────────────
+    const now = Math.floor(Date.now() / 1000);
+    const jwt = await new SignJWT({
+      iss: sa.client_email,
+      sub: sa.client_email,
+      scope: "https://www.googleapis.com/auth/cloud-platform",
+      aud: "https://oauth2.googleapis.com/token",
+    })
+      .setProtectedHeader({ alg: "RS256" })
+      .setIssuedAt(now)
+      .setExpirationTime(now + 3600)
+      .sign(await importPKCS8(sa.private_key, "RS256"));
+
+    // ── Exchange JWT for access token ────────────────────────
+    const tokenRes = await fetch("https://oauth2.googleapis.com/token", {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams({
+        grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+        assertion: jwt,
+      }),
+    });
+
+    if (!tokenRes.ok) {
+      console.error("OAuth2 token exchange failed:", await tokenRes.text());
+      await burnFiles(allFileNames, storagePrefix);
+      return new Response(
+        JSON.stringify({ error: "Failed to obtain GCP access token" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    const { access_token } = await tokenRes.json();
+
+    // ── Call Vertex AI REST API ──────────────────────────────
+    const vertexUrl = `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/gemini-1.5-pro:generateContent`;
+    const prompt = `${SYSTEM_PROMPT}\n\nRAW COMMUNICATIONS:\n${combinedText.slice(0, 900000)}`;
+
+    console.log("Calling Vertex AI Gemini 1.5 Pro...");
+
+    let responseText: string;
+    try {
+      const vertexRes = await fetch(vertexUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${access_token}`,
+        },
+        body: JSON.stringify({
+          contents: [
+            {
+              role: "user",
+              parts: [{ text: prompt }],
+            },
+          ],
+          generationConfig: {
+            responseMimeType: "application/json",
+            temperature: 0.3,
+            maxOutputTokens: 8192,
+          },
+        }),
+      });
+
+      if (!vertexRes.ok) {
+        const errText = await vertexRes.text();
+        throw new Error(`Vertex AI returned ${vertexRes.status}: ${errText.slice(0, 300)}`);
+      }
+
+      const vertexData = await vertexRes.json();
+      // Manual REST extraction — no SDK helpers
+      responseText = vertexData.candidates[0].content.parts[0].text;
+    } catch (vertexErr) {
+      console.error("Vertex AI call failed:", vertexErr);
+      await burnFiles(allFileNames, storagePrefix);
+      return new Response(
+        JSON.stringify({ error: "Vertex AI extraction failed", detail: (vertexErr as Error).message }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+    console.log(`Vertex AI response: ${responseText.length} chars`);
 
     // ── Parse & Validate ─────────────────────────────────────
     let soulProfile: Record<string, unknown>;
