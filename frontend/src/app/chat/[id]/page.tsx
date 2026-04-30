@@ -1,17 +1,53 @@
 "use client";
 
-import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState } from "react";
+import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
+import { useChat } from "ai/react";
 import BottomNav from "@/components/BottomNav";
 import Paywall from "@/components/Paywall";
+import { createClient } from "@/utils/supabase/client";
 
 export default function ChatPage() {
   const router = useRouter();
+  const params = useParams();
+  const personaId = params.id as string;
   const [paywallOpen, setPaywallOpen] = useState(false);
+  const [personaName, setPersonaName] = useState("");
+  const [personaRelation, setPersonaRelation] = useState("");
+  const [error, setError] = useState("");
+
+  // ── Fetch persona details ──────────────────────────────
+  useEffect(() => {
+    async function loadPersona() {
+      const supabase = createClient();
+      const { data } = await supabase
+        .from("personas")
+        .select("name, relation, status")
+        .eq("id", personaId)
+        .single();
+
+      if (data) {
+        setPersonaName(data.name);
+        setPersonaRelation(data.relation);
+      }
+    }
+    if (personaId) loadPersona();
+  }, [personaId]);
+
+  // ── useChat hook — streams from /api/chat ──────────────
+  const { messages, input, handleInputChange, handleSubmit, isLoading, error: chatError } =
+    useChat({
+      api: "/api/chat",
+      body: { personaId },
+      onError: (e) => setError(e.message),
+      onResponse: () => setError(""),
+    });
+
+  const displayName = personaName || "Loved One";
 
   return (
-    <div className="flex-1 flex flex-col selection:bg-rose/20">
+    <div className="flex-1 flex flex-col">
       {/* Top bar */}
       <header className="bg-surface sticky top-0 z-40 shadow-sm shadow-black/5 border-b border-subtle/60">
         <div className="relative flex items-center justify-center w-full px-6 py-4">
@@ -23,116 +59,115 @@ export default function ChatPage() {
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
 
-          <Link href="/chat/mom/manage" className="flex items-center gap-2">
-            <div className="w-8 h-8 rounded-full overflow-hidden mr-2 border border-subtle/60">
-              <img
-                alt="Mom"
-                className="w-full h-full object-cover"
-                src="https://lh3.googleusercontent.com/aida-public/AB6AXuCLF-QptfGv8gv9uwAIVfmlEcyqRFb7csoieT6F2NTOgE2VPYWOor6R2ZLSDEZ1vn6OqVyU2Q-F1u3F2FfFs-W6dL1NrrCHiI-I6yAkvAhE3LSLzh74FlzhjfmJ0xONZn1S9p7ZWiodrJn3mpXZjjqA7UtoXOQYfb7lGmh0nLAxjE1cSMsF-MPTNpJJ3lHb1bcuH9tZqz5HRD2IxL_0PmZqFFn5zyBroirVa-ZOoIBO18_oM7bt2a43XCz6kSWOKrkJJjJ8xPSmNNeC"
-              />
+          <div className="flex items-center gap-2">
+            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center mr-2 border border-subtle/60">
+              <span className="font-serif text-sm text-primary/70">
+                {displayName.charAt(0)}
+              </span>
             </div>
             <h1 className="text-2xl font-serif font-bold text-primary tracking-tight not-italic">
-              Mom&apos;s Legacy
+              {displayName}&apos;s Legacy
             </h1>
-          </Link>
+          </div>
 
           <button
             onClick={() => setPaywallOpen(true)}
             className="absolute right-4 text-rose font-label-caps text-label-caps uppercase tracking-widest px-3 py-1 rounded-full border border-subtle/60 text-xs hover:bg-rose/5 active:scale-95 transition-all btn-press"
           >
-            Tier 1
+            Echoes
           </button>
         </div>
       </header>
 
       {/* Chat area */}
-      <main className="flex-grow w-full max-w-4xl mx-auto px-6 py-8 flex flex-col gap-6 overflow-y-auto pb-40">
-        {/* Date separator */}
-        <div className="flex justify-center my-4">
-          <span className="text-primary-variant/60 font-label-caps text-label-caps uppercase tracking-wider bg-surface px-4 py-1 rounded-full text-xs">
-            October 24, 2023
-          </span>
-        </div>
-
-        {/* User message */}
-        <div className="flex justify-end w-full animate-fade-in-up">
-          <div className="max-w-[85%] sm:max-w-[75%] bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-2xl rounded-tr-sm px-6 py-4 shadow-sm ml-auto">
-            <p className="font-chat-text text-primary">
-              I was thinking about that summer we spent at the lake house. Do you
-              remember the time we tried to bake that blackberry pie and it
-              completely fell apart?
-            </p>
-            <span className="text-[10px] text-primary-variant/50 mt-2 block text-right">
-              10:42 AM
+      <main className="flex-grow w-full max-w-4xl mx-auto px-6 py-6 flex flex-col gap-4 overflow-y-auto pb-40">
+        {error && (
+          <div className="text-center py-2">
+            <span className="text-xs text-error bg-red-50 dark:bg-red-950/30 rounded-full px-4 py-1.5">
+              {error}
             </span>
           </div>
-        </div>
+        )}
 
-        {/* Persona message */}
-        <div
-          className="flex justify-start w-full animate-fade-in-up"
-          style={{ animationDelay: "150ms" }}
-        >
-          <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden mt-1 mr-3 self-start border border-subtle/60">
-            <img
-              alt="Mom"
-              className="w-full h-full object-cover"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuB-eZv3eOyBB79iHS64PT1MYc29xyWHl6FlwkwH23sjJNq_uSiynK3zXiC5_rHT9pZhA_aKUN4EL9ajw9D8QLwhyKCjbahqfBm_Ecss8SI1lVxYzPEA6QM8-pGD0Nu60kIZd-eDUrJbpIF1ZqNFt3aFA4eNdK99HPkXk3FCHf34XRpHe14tqSD5V05tXDYxxCUVRHItcZZrbh8GMkqBCjbF6RrufhMb-OaoSxMZ_Wtiu8s_zg63WTJmclTFdUjpFL24B0OXC1CGZSvQ"
-            />
+        {messages.length === 0 && (
+          <div className="flex-1 flex items-center justify-center">
+            <p className="text-secondary text-sm italic animate-fade-in">
+              Send a message to begin your conversation...
+            </p>
           </div>
-          <div className="max-w-[85%] sm:max-w-[75%] bg-rose/10 dark:bg-rose/15 border border-rose/20 dark:border-rose/25 rounded-2xl rounded-tl-sm px-6 py-4 shadow-sm mr-auto">
-            <div className="flex items-center gap-2 mb-2">
-              <span className="font-persona-name text-persona-name text-primary-variant">
-                Mom
+        )}
+
+        {messages.map((msg) => (
+          <div
+            key={msg.id}
+            className={`flex w-full animate-fade-in-up ${
+              msg.role === "user" ? "justify-end" : "justify-start"
+            }`}
+          >
+            {/* Persona avatar (left side) */}
+            {msg.role !== "user" && (
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center mt-1 mr-3 self-start border border-subtle/60">
+                <span className="font-serif text-sm text-primary/70">
+                  {displayName.charAt(0)}
+                </span>
+              </div>
+            )}
+
+            {/* Message bubble */}
+            <div
+              className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-6 py-4 shadow-sm ${
+                msg.role === "user"
+                  ? "bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-tr-sm ml-auto"
+                  : "bg-rose/10 dark:bg-rose/15 border border-rose/20 dark:border-rose/25 rounded-tl-sm mr-auto"
+              }`}
+            >
+              {msg.role !== "user" && (
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="text-sm font-serif text-primary/80">
+                    {displayName}
+                  </span>
+                </div>
+              )}
+              <p className="text-primary text-sm leading-relaxed whitespace-pre-wrap">
+                {msg.content}
+              </p>
+            </div>
+          </div>
+        ))}
+
+        {/* Reminiscing state — shown while AI is streaming */}
+        {isLoading && (
+          <div className="flex justify-start items-center w-full animate-fade-in">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center mr-3 border border-subtle/60">
+              <span className="font-serif text-sm text-primary/70">
+                {displayName.charAt(0)}
               </span>
             </div>
-            <p className="font-chat-text text-primary">
-              Oh, my goodness, yes! The famous &ldquo;blackberry crumble&rdquo;
-              incident. We had picked so many wild blackberries that morning, our
-              hands were stained purple for days.
-            </p>
-            <p className="font-chat-text text-primary mt-3">
-              I remember the oven in that old cabin was completely unpredictable.
-              We left it in for what felt like hours, and when we finally took it
-              out, it was just a delicious, bubbly mess. We ended up eating it out
-              of bowls with spoons and laughing until our sides hurt. Those were
-              such sweet days, weren&apos;t they?
-            </p>
-            <span className="text-[10px] text-primary-variant/60 mt-2 block text-left">
-              10:45 AM
-            </span>
-          </div>
-        </div>
-
-        {/* Reminiscing state */}
-        <div className="flex justify-start items-center w-full animate-pulse">
-          <div className="flex-shrink-0 w-8 h-8 rounded-full overflow-hidden mr-3 opacity-40 border border-subtle/60">
-            <img
-              alt="Mom"
-              className="w-full h-full object-cover"
-              src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7MoPivvXvSaGSxTmJoZ61zuRuNIaEoFfPBfK0G81cwBBssHcZsuLGe5TuoPBr8foXUXaSrTY8mRroVgmMjBbdzrjeeAbSv2LYk1ywjYWHfSPX2F7juIBfTECJAz_v8X_C2T0BNzLzsKXOGj8EUp-a1sYM_KrpV3L7ywgWgd5_zGgVeC5mvKaQGlw_us3H_GTVR0KVR1JTvGiRc2thrQTs187uCrt5KQLUubNgxNg7APhyMgAlIScFnQ-EtDD3iBolCPt1HOOjvTTt"
-            />
-          </div>
-          <div className="max-w-[85%] sm:max-w-[75%] bg-surface rounded-2xl rounded-tl-sm px-4 py-2 border border-subtle/50 flex items-center gap-3">
-            <div className="flex space-x-1.5">
-              <div className="w-1.5 h-1.5 bg-rose/40 rounded-full" />
-              <div className="w-1.5 h-1.5 bg-rose/40 rounded-full" />
-              <div className="w-1.5 h-1.5 bg-rose/40 rounded-full" />
+            <div className="max-w-[85%] sm:max-w-[75%] bg-surface rounded-2xl rounded-tl-sm px-4 py-3 border border-subtle/50 flex items-center gap-3">
+              <div className="flex space-x-1.5 animate-pulse">
+                <div className="w-1.5 h-1.5 bg-rose/40 rounded-full" style={{ animationDelay: "0ms" }} />
+                <div className="w-1.5 h-1.5 bg-rose/40 rounded-full" style={{ animationDelay: "150ms" }} />
+                <div className="w-1.5 h-1.5 bg-rose/40 rounded-full" style={{ animationDelay: "300ms" }} />
+              </div>
+              <p className="text-sm text-secondary italic">
+                {displayName} is reminiscing...
+              </p>
             </div>
-            <p className="font-chat-text text-sm text-primary-variant/70 italic">
-              Mom is reminiscing...
-            </p>
           </div>
-        </div>
+        )}
       </main>
 
       {/* Input area */}
-      <div className="fixed bottom-0 w-full max-w-md mx-auto left-0 right-0 bg-surface border-t border-subtle z-40 pb-[72px] md:pb-safe">
+      <form
+        onSubmit={handleSubmit}
+        className="fixed bottom-0 w-full max-w-md mx-auto left-0 right-0 bg-surface border-t border-subtle z-40 pb-[72px] md:pb-safe"
+      >
         <div className="max-w-4xl mx-auto px-4 py-4 md:px-6">
           <div className="flex items-end gap-3 bg-base rounded-3xl border border-subtle p-2 shadow-[0_-2px_20px_rgba(0,0,0,0.02)] transition-shadow focus-within:shadow-[0_-2px_25px_rgba(196,154,154,0.1)] focus-within:border-rose/30">
             <button
+              type="button"
               aria-label="Voice input"
-              className="p-3 text-primary-variant hover:text-rose hover:bg-stone-100 dark:hover:bg-stone-800 border-2 border-subtle/80 transition-all duration-200 rounded-full self-end btn-press"
+              className="p-3 text-secondary hover:text-rose hover:bg-stone-100 dark:hover:bg-stone-800 border-2 border-subtle/80 transition-all duration-200 rounded-full self-end btn-press"
             >
               <span
                 className="material-symbols-outlined"
@@ -143,22 +178,37 @@ export default function ChatPage() {
             </button>
             <div className="w-px h-6 bg-subtle/50 self-center" />
             <button
+              type="button"
               aria-label="Attach file"
-              className="p-3 text-primary-variant hover:text-rose hover:bg-stone-100 dark:hover:bg-stone-800 border-2 border-subtle/80 transition-all duration-200 rounded-full self-end btn-press"
+              className="p-3 text-secondary hover:text-rose hover:bg-stone-100 dark:hover:bg-stone-800 border-2 border-subtle/80 transition-all duration-200 rounded-full self-end btn-press"
             >
               <span className="material-symbols-outlined">add</span>
             </button>
             <div className="flex-grow">
               <textarea
-                className="w-full bg-transparent border-none focus:ring-0 resize-none max-h-32 min-h-[44px] py-3 font-chat-text text-primary placeholder:text-primary-variant/50 placeholder:font-light"
-                placeholder="Message Mom..."
+                value={input}
+                onChange={handleInputChange}
+                className="w-full bg-transparent border-none focus:ring-0 resize-none max-h-32 min-h-[44px] py-3 text-primary placeholder:text-secondary/50"
+                placeholder={`Message ${displayName}...`}
                 rows={1}
+                onKeyDown={(e) => {
+                  if (e.key === "Enter" && !e.shiftKey) {
+                    e.preventDefault();
+                    handleSubmit(e);
+                  }
+                }}
                 style={{ scrollbarWidth: "none" }}
               />
             </div>
             <button
+              type="submit"
               aria-label="Send message"
-              className="p-3 bg-rose text-white hover:bg-muted transition-all duration-200 rounded-full self-end shadow-sm btn-press"
+              disabled={!input.trim() || isLoading}
+              className={`p-3 rounded-full self-end shadow-sm btn-press transition-all duration-200 ${
+                !input.trim() || isLoading
+                  ? "bg-stone-200 dark:bg-stone-700 text-stone-400 cursor-not-allowed"
+                  : "bg-rose text-white hover:bg-muted"
+              }`}
             >
               <span
                 className="material-symbols-outlined"
@@ -169,7 +219,7 @@ export default function ChatPage() {
             </button>
           </div>
         </div>
-      </div>
+      </form>
 
       <Paywall open={paywallOpen} onClose={() => setPaywallOpen(false)} />
       <BottomNav />
