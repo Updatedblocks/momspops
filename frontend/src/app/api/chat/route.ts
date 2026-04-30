@@ -1,6 +1,7 @@
 import { SignJWT, importPKCS8 } from "jose";
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
+import { createParser } from "eventsource-parser";
 
 // ── Get GCP access token via Service Account JWT ──────────
 async function getAccessToken(): Promise<string> {
@@ -159,6 +160,15 @@ You must translate the numerical and categorical data in the <COGNITIVE_STATE_VE
 </ABSOLUTE_CONSTRAINTS>
 </SYSTEM_DIRECTIVE>`;
 
+    // ── Save user message to chat_logs ──────────────────────
+    const lastUserMsg = messages[messages.length - 1];
+    await supabase.from("chat_logs").insert({
+      persona_id: personaId,
+      user_id: user.id,
+      role: "user",
+      content: lastUserMsg.content,
+    });
+
     // ── GCP OAuth2 ────────────────────────────────────────
     const accessToken = await getAccessToken();
     const projectId = process.env.GCP_PROJECT_ID;
@@ -199,47 +209,62 @@ You must translate the numerical and categorical data in the <COGNITIVE_STATE_VE
       );
     }
 
-    // ── Parse SSE stream → AI SDK data stream ─────────────
+    // ── Hardened SSE stream with eventsource-parser ─────────
     const encoder = new TextEncoder();
     const reader = vertexRes.body!.getReader();
     const decoder = new TextDecoder();
-    let buffer = "";
+    let fullAiResponse = "";
 
     const stream = new ReadableStream({
-      async pull(controller) {
-        while (true) {
-          const { done, value } = await reader.read();
-          if (done) {
-            // Send finish signal — Vercel Data Stream Protocol
-            controller.enqueue(
-              encoder.encode(`d:${JSON.stringify({ finishReason: "stop" })}\n`),
-            );
-            controller.close();
-            return;
-          }
-
-          buffer += decoder.decode(value, { stream: true });
-          const lines = buffer.split("\n");
-          buffer = lines.pop() || "";
-
-          for (const line of lines) {
-            if (!line.startsWith("data: ")) continue;
-            const jsonStr = line.slice(6).trim();
-            if (!jsonStr) continue;
-
-            try {
-              const chunk = JSON.parse(jsonStr);
-              const text = chunk.candidates?.[0]?.content?.parts?.[0]?.text;
-              if (text) {
-                controller.enqueue(
-                  encoder.encode(`0:${JSON.stringify(text)}\n`),
-                );
+      async start(controller) {
+        const parser = createParser({
+          onEvent(event) {
+            if (event.data) {
+              try {
+                const chunk = JSON.parse(event.data);
+                const text = chunk.candidates?.[0]?.content?.parts?.[0]?.text;
+                if (text) {
+                  fullAiResponse += text;
+                  controller.enqueue(
+                    encoder.encode(`0:${JSON.stringify(text)}\n`),
+                  );
+                }
+              } catch {
+                // skip unparseable chunks
               }
-            } catch {
-              // skip malformed chunks
             }
+          },
+        });
+
+        try {
+          while (true) {
+            const { done, value } = await reader.read();
+            if (done) break;
+            parser.feed(decoder.decode(value, { stream: true }));
+          }
+        } catch (err) {
+          console.error("Stream read error:", err);
+        }
+
+        // ── Save AI response to chat_logs ──────────────────
+        if (fullAiResponse) {
+          try {
+            await supabase.from("chat_logs").insert({
+              persona_id: personaId,
+              user_id: user.id,
+              role: "assistant",
+              content: fullAiResponse,
+            });
+          } catch (e) {
+            console.error("DB save error:", e);
           }
         }
+
+        // Finish signal
+        controller.enqueue(
+          encoder.encode(`d:${JSON.stringify({ finishReason: "stop" })}\n`),
+        );
+        controller.close();
       },
     });
 
