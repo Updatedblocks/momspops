@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { useChat } from "ai/react";
+import { useChat } from "@ai-sdk/react";
 import BottomNav from "@/components/BottomNav";
 import Paywall from "@/components/Paywall";
 import { createClient } from "@/utils/supabase/client";

@@ -1,4 +1,3 @@
-import { formatStreamPart } from "ai";
 import { SignJWT, importPKCS8 } from "jose";
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
@@ -211,9 +210,9 @@ You must translate the numerical and categorical data in the <COGNITIVE_STATE_VE
         while (true) {
           const { done, value } = await reader.read();
           if (done) {
-            // Send finish signal
+            // Send finish signal — Vercel Data Stream Protocol
             controller.enqueue(
-              encoder.encode(formatStreamPart("finish", { finishReason: "stop" })),
+              encoder.encode(`d:${JSON.stringify({ finishReason: "stop" })}\n`),
             );
             controller.close();
             return;
@@ -233,7 +232,7 @@ You must translate the numerical and categorical data in the <COGNITIVE_STATE_VE
               const text = chunk.candidates?.[0]?.content?.parts?.[0]?.text;
               if (text) {
                 controller.enqueue(
-                  encoder.encode(formatStreamPart("text", text)),
+                  encoder.encode(`0:${JSON.stringify(text)}\n`),
                 );
               }
             } catch {
@@ -247,7 +246,7 @@ You must translate the numerical and categorical data in the <COGNITIVE_STATE_VE
     return new Response(stream, {
       headers: {
         "Content-Type": "text/plain; charset=utf-8",
-        "x-vercel-ai-data-stream": "v1",
+        "X-Vercel-AI-Data-Stream": "v1",
       },
     });
   } catch (err) {
