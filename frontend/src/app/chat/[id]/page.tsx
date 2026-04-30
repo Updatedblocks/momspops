@@ -69,7 +69,30 @@ export default function ChatPage() {
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [replyingTo, setReplyingTo] = useState<Message | null>(null);
+  const [swipingId, setSwipingId] = useState<string | null>(null);
+  const [swipeOffset, setSwipeOffset] = useState(0);
+  const swipeStartX = useRef(0);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  // ── Swipe to reply handlers ───────────────────────────
+  const handleTouchStart = (e: React.TouchEvent, msgId: string) => {
+    swipeStartX.current = e.touches[0].clientX;
+    setSwipingId(msgId);
+  };
+
+  const handleTouchMove = (e: React.TouchEvent, msg: Message) => {
+    if (swipingId !== msg.id) return;
+    const delta = e.touches[0].clientX - swipeStartX.current;
+    setSwipeOffset(delta);
+  };
+
+  const handleTouchEnd = (msg: Message) => {
+    if (Math.abs(swipeOffset) > 60) {
+      setReplyingTo(msg);
+    }
+    setSwipingId(null);
+    setSwipeOffset(0);
+  };
 
   // ── Auto-scroll to latest message ──────────────────────
   useEffect(() => {
@@ -224,20 +247,26 @@ export default function ChatPage() {
           return (
           <div
             key={msg.id}
-            className={`flex w-full animate-fade-in-up group ${
+            onTouchStart={(e) => handleTouchStart(e, msg.id)}
+            onTouchMove={(e) => handleTouchMove(e, msg)}
+            onTouchEnd={() => handleTouchEnd(msg)}
+            className={`flex w-full animate-fade-in-up group relative ${
               msg.role === "user" ? "justify-end" : "justify-start"
             }`}
+            style={swipingId === msg.id ? {
+              transform: `translateX(${swipeOffset * 0.3}px)`,
+              transition: 'transform 0.05s linear',
+            } : undefined}
           >
-            {/* Reply icon — hover reveal */}
-            {msg.role === "user" && (
-              <span
-                onClick={() => setReplyingTo(msg)}
-                className="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-sm self-end mb-1 text-white dark:text-stone-900 bg-stone-900/90 dark:bg-[#FDFBF7]/90 rounded-full p-1 shadow-sm"
-              >
-                reply
-              </span>
+            {/* Swipe indicator */}
+            {swipingId === msg.id && Math.abs(swipeOffset) > 30 && (
+              <div className="absolute inset-y-0 flex items-center pointer-events-none"
+                style={msg.role === "user" ? { left: 0 } : { right: 0 }}>
+                <span className="material-symbols-outlined text-rose text-lg opacity-80">
+                  reply
+                </span>
+              </div>
             )}
-
             {/* Persona avatar */}
             {msg.role !== "user" && (
               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center mt-1 mr-3 self-start border border-subtle/60">
@@ -300,11 +329,21 @@ export default function ChatPage() {
               )}
             </div>
 
-            {/* Reply icon — hover reveal (persona side) */}
+            {/* Reply icon — hover reveal (user: right of bubble) */}
+            {msg.role === "user" && (
+              <span
+                onClick={() => setReplyingTo(msg)}
+                className="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-sm self-end ml-1 mb-1 text-white dark:text-stone-900 bg-stone-900/90 dark:bg-[#FDFBF7]/90 rounded-full p-1 shadow-sm flex-shrink-0"
+              >
+                reply
+              </span>
+            )}
+
+            {/* Reply icon — hover reveal (persona: left of bubble) */}
             {msg.role !== "user" && (
               <span
                 onClick={() => setReplyingTo(msg)}
-                className="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-sm self-end mb-1 ml-1 text-white dark:text-stone-900 bg-stone-900/90 dark:bg-[#FDFBF7]/90 rounded-full p-1 shadow-sm"
+                className="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-sm self-end mb-1 ml-1 text-white dark:text-stone-900 bg-stone-900/90 dark:bg-[#FDFBF7]/90 rounded-full p-1 shadow-sm flex-shrink-0"
               >
                 reply
               </span>
