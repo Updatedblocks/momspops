@@ -146,16 +146,16 @@ export default function DistillPage() {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-[#FDFBF7]">
+    <div className="flex-1 flex flex-col">
       {/* Top bar */}
-      <header className="bg-[#FAF9F6]/90 backdrop-blur-sm sticky top-0 z-50 shadow-sm shadow-black/5 w-full">
+      <header className="bg-header/90 backdrop-blur-sm sticky top-0 z-50 shadow-sm shadow-black/5 w-full">
         <div className="relative flex items-center justify-center w-full px-6 py-4">
-          <h1 className="text-2xl font-serif font-bold text-[#2C2C2C] tracking-tight not-italic">
+          <h1 className="text-2xl font-serif font-bold text-primary tracking-tight not-italic">
             The Heirloom
           </h1>
           <Link
             href="/settings/profile"
-            className="absolute right-4 w-8 h-8 rounded-full overflow-hidden border border-stone-200 btn-press"
+            className="absolute right-4 w-8 h-8 rounded-full overflow-hidden border border-subtle/40 btn-press"
           >
             {avatarUrl ? (
               <img
@@ -165,7 +165,7 @@ export default function DistillPage() {
                 referrerPolicy="no-referrer"
               />
             ) : (
-              <span className="material-symbols-outlined w-full h-full flex items-center justify-center text-stone-500 text-base bg-[#FDFBF7]">
+              <span className="material-symbols-outlined w-full h-full flex items-center justify-center text-secondary text-base bg-surface">
                 person
               </span>
             )}
@@ -176,10 +176,10 @@ export default function DistillPage() {
       <main className="flex-grow w-full max-w-2xl mx-auto px-6 pt-8 pb-32 flex flex-col gap-8 animate-fade-in-up">
         {/* Header */}
         <div className="text-center">
-          <h1 className="text-3xl sm:text-4xl font-serif text-[#2C2C2C] tracking-tight mb-3">
+          <h1 className="text-3xl sm:text-4xl font-serif text-primary tracking-tight mb-3">
             Share their words
           </h1>
-          <p className="text-sm sm:text-base text-stone-500 leading-relaxed max-w-md mx-auto">
+          <p className="text-sm sm:text-base text-secondary leading-relaxed max-w-md mx-auto">
             Gently upload letters, photos, or voice notes. We&apos;ll
             thoughtfully distill them to capture the essence of their voice.
           </p>
@@ -187,7 +187,7 @@ export default function DistillPage() {
 
         {/* Progress steps */}
         <div className="relative flex flex-row justify-between w-full px-4">
-          <div className="absolute top-5 left-[15%] right-[15%] border-t-2 border-dotted border-stone-200 -z-10" />
+          <div className="absolute top-5 left-[15%] right-[15%] border-t-2 border-dotted border-subtle -z-10" />
           {[
             { n: "1", label: "Gather Memories", active: true },
             { n: "2", label: "The Distillation", active: false },
@@ -197,8 +197,8 @@ export default function DistillPage() {
               <div
                 className={`w-8 h-8 rounded-full flex items-center justify-center shadow-sm ${
                   step.active
-                    ? "bg-[#E8DCC4] text-white"
-                    : "bg-white text-stone-500 border border-stone-200"
+                    ? "bg-muted text-white"
+                    : "bg-surface text-secondary border border-subtle"
                 }`}
               >
                 <span className="text-[10px] font-bold tracking-wider uppercase">
@@ -207,7 +207,7 @@ export default function DistillPage() {
               </div>
               <span
                 className={`text-center text-xs sm:text-sm mt-2 font-medium ${
-                  step.active ? "text-[#2C2C2C]" : "text-stone-500"
+                  step.active ? "text-primary" : "text-secondary"
                 }`}
               >
                 {step.label}
@@ -223,10 +223,10 @@ export default function DistillPage() {
           onDragOver={handleDragOver}
           onDrop={handleDrop}
           onClick={() => fileInputRef.current?.click()}
-          className={`w-full bg-white border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 min-h-[220px] relative overflow-hidden group animate-fade-in-up ${
+          className={`w-full bg-surface border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 min-h-[220px] relative overflow-hidden group animate-fade-in-up ${
             isDragging
-              ? "border-[#C49A9A] bg-rose-50/30 shadow-[0_4px_20px_rgba(196,154,154,0.15)]"
-              : "border-stone-200 hover:border-[#C49A9A]/50 hover:shadow-[0_4px_20px_rgba(0,0,0,0.03)]"
+              ? "border-rose bg-rose/5 shadow-[0_4px_20px_rgba(196,154,154,0.15)]"
+              : "border-subtle hover:border-rose/50 hover:shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:hover:border-rose/40 dark:hover:shadow-[0_4px_20px_rgba(196,154,154,0.08)]"
           }`}
         >
           <input
@@ -237,21 +237,21 @@ export default function DistillPage() {
             className="hidden"
             accept="image/*,audio/*,.pdf,.doc,.docx,.txt,.mp3,.wav,.m4a"
           />
-          <div className="w-16 h-16 rounded-full bg-stone-50 flex items-center justify-center mb-5 text-[#C49A9A] group-hover:scale-110 transition-transform duration-500">
+          <div className="w-16 h-16 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center mb-5 text-rose group-hover:scale-110 transition-transform duration-500">
             <span className="material-symbols-outlined text-4xl">
               {isDragging ? "download" : "description"}
             </span>
           </div>
-          <h2 className="text-lg font-serif text-[#2C2C2C] mb-2">
+          <h2 className="text-lg font-serif text-primary mb-2">
             {isDragging ? "Let them go..." : "Drop memories here"}
           </h2>
-          <p className="text-sm text-stone-500 mb-4">
+          <p className="text-sm text-secondary mb-4">
             Letters, photos, voice notes — anything that holds their voice
           </p>
-          <span className="px-6 py-3 rounded-full font-bold bg-[#2C2C2C] text-[#FDFBF7] hover:opacity-90 transition-all btn-press text-sm">
+          <span className="px-6 py-3 rounded-full font-bold bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 hover:opacity-90 transition-all btn-press text-sm">
             Browse Files
           </span>
-          <p className="text-[10px] font-medium text-stone-400 mt-3">
+          <p className="text-[10px] font-medium text-secondary/60 mt-3">
             Supports PDF, DOCX, TXT, JPG, PNG, MP3, WAV
           </p>
         </div>
@@ -259,17 +259,17 @@ export default function DistillPage() {
         {/* Selected files list */}
         {files.length > 0 && (
           <div className="space-y-2 animate-slide-down">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-stone-500 ml-1 mb-3">
+            <h3 className="text-xs font-bold uppercase tracking-widest text-secondary ml-1 mb-3">
               Selected Memories ({files.length})
             </h3>
             {files.map((f, i) => (
               <div
                 key={f.id}
-                className="flex items-center gap-4 bg-white border border-stone-100 rounded-xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.02)] animate-fade-in-up"
+                className="flex items-center gap-4 bg-surface border border-subtle/60 rounded-xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.02)] animate-fade-in-up"
                 style={{ animationDelay: `${i * 60}ms` }}
               >
                 {/* Preview thumbnail or icon */}
-                <div className="w-10 h-10 rounded-lg bg-stone-50 flex items-center justify-center flex-shrink-0 overflow-hidden">
+                <div className="w-10 h-10 rounded-lg bg-stone-100 dark:bg-stone-800 flex items-center justify-center flex-shrink-0 overflow-hidden">
                   {f.preview ? (
                     <img
                       src={f.preview}
@@ -277,7 +277,7 @@ export default function DistillPage() {
                       className="w-full h-full object-cover"
                     />
                   ) : (
-                    <span className="material-symbols-outlined text-stone-400 text-xl">
+                    <span className="material-symbols-outlined text-secondary/60 text-xl">
                       {fileIcon(f.file.type)}
                     </span>
                   )}
@@ -285,10 +285,10 @@ export default function DistillPage() {
 
                 {/* File info */}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-[#2C2C2C] truncate">
+                  <p className="text-sm font-medium text-primary truncate">
                     {f.file.name}
                   </p>
-                  <p className="text-xs text-stone-400">
+                  <p className="text-xs text-secondary/70">
                     {formatSize(f.file.size)}
                   </p>
                 </div>
@@ -299,7 +299,7 @@ export default function DistillPage() {
                     e.stopPropagation();
                     removeFile(f.id);
                   }}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-stone-400 hover:text-[#C49A9A] hover:bg-rose-50 transition-all duration-200 btn-press flex-shrink-0"
+                  className="w-8 h-8 rounded-full flex items-center justify-center text-secondary/60 hover:text-rose hover:bg-rose/10 dark:hover:bg-rose/15 transition-all duration-200 btn-press flex-shrink-0"
                   aria-label={`Remove ${f.file.name}`}
                 >
                   <span className="material-symbols-outlined text-lg">close</span>
@@ -316,8 +316,8 @@ export default function DistillPage() {
             disabled={files.length === 0 || isDistilling}
             className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 btn-press ${
               files.length > 0 && !isDistilling
-                ? "bg-[#2C2C2C] text-[#FDFBF7] hover:shadow-lg hover:-translate-y-0.5"
-                : "bg-stone-200 text-stone-400 cursor-not-allowed"
+                ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 hover:shadow-lg hover:-translate-y-0.5"
+                : "bg-stone-200 dark:bg-stone-700 text-stone-400 dark:text-stone-500 cursor-not-allowed"
             }`}
           >
             {isDistilling
@@ -326,22 +326,22 @@ export default function DistillPage() {
                 ? `Begin Distillation — ${files.length} file${files.length !== 1 ? "s" : ""}`
                 : "Add memories to begin"}
           </button>
-          <p className="text-xs text-stone-400 text-center max-w-xs">
+          <p className="text-xs text-secondary/60 text-center max-w-xs">
             Your memories are encrypted, private, and never used to train public
             models.
           </p>
         </div>
 
         {/* Privacy reassurance */}
-        <div className="bg-white border border-stone-100 rounded-2xl p-5 flex items-start gap-4 shadow-[0_4px_20px_rgba(0,0,0,0.02)] animate-fade-in-up stagger-4">
-          <div className="text-[#C49A9A] mt-0.5 flex-shrink-0">
+        <div className="bg-surface border border-subtle/60 rounded-2xl p-5 flex items-start gap-4 shadow-sm animate-fade-in-up stagger-4">
+          <div className="text-rose mt-0.5 flex-shrink-0">
             <span className="material-symbols-outlined">lock</span>
           </div>
           <div>
-            <h3 className="text-sm font-medium text-[#2C2C2C] mb-1 font-serif">
+            <h3 className="text-sm font-medium text-primary mb-1 font-serif">
               A Safe Space
             </h3>
-            <p className="text-xs text-stone-500 leading-relaxed">
+            <p className="text-xs text-secondary leading-relaxed">
               Your memories are encrypted, private, and belong solely to you and
               your heirloom. Nothing is ever used to train public models.
             </p>
