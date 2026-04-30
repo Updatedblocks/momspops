@@ -159,6 +159,15 @@ Deno.serve(async (req: Request) => {
       });
     }
 
+    // ── File cleanup helper (runs on EVERY error path after download) ──
+    const burnFiles = async (fileNames: string[], prefix: string) => {
+      if (fileNames.length === 0) return;
+      const paths = fileNames.map((name) => `${prefix}/${name}`);
+      const { error } = await supabaseClient.storage.from("memories").remove(paths);
+      if (error) console.warn(`Burn warning: ${error.message}`);
+      else console.log(`Burned ${paths.length} files to reclaim storage`);
+    };
+
     const storagePath = `memories/${userId}/${batchId}`;
     console.log(`Processing batch: ${storagePath}`);
 
@@ -175,6 +184,8 @@ Deno.serve(async (req: Request) => {
     }
 
     console.log(`Found ${files.length} files`);
+    const allFileNames = files.map((f) => f.name);
+    const storagePrefix = `${userId}/${batchId}`;
 
     // Download and concatenate text content
     const textParts: string[] = [];
@@ -199,6 +210,7 @@ Deno.serve(async (req: Request) => {
     }
 
     if (textParts.length === 0) {
+      await burnFiles(allFileNames, storagePrefix);
       return new Response(
         JSON.stringify({ error: "No processable text files found (supports: .txt, .csv, .md, .json)" }),
         { status: 400, headers: { "Content-Type": "application/json" } },
@@ -211,6 +223,7 @@ Deno.serve(async (req: Request) => {
     // ── Gemini 1.5 Pro Extraction ───────────────────────────
     const geminiKey = Deno.env.get("GEMINI_API_KEY");
     if (!geminiKey) {
+      await burnFiles(allFileNames, storagePrefix);
       return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured" }), {
         status: 500,
         headers: { "Content-Type": "application/json" },
@@ -230,8 +243,18 @@ Deno.serve(async (req: Request) => {
     const prompt = `${SYSTEM_PROMPT}\n\nRAW COMMUNICATIONS:\n${combinedText.slice(0, 900000)}`;
     console.log("Calling Gemini 1.5 Pro...");
 
-    const result = await model.generateContent(prompt);
-    const responseText = result.response.text();
+    let responseText: string;
+    try {
+      const result = await model.generateContent(prompt);
+      responseText = result.response.text();
+    } catch (geminiErr) {
+      console.error("Gemini call failed:", geminiErr);
+      await burnFiles(allFileNames, storagePrefix);
+      return new Response(
+        JSON.stringify({ error: "Gemini extraction failed", detail: (geminiErr as Error).message }),
+        { status: 500, headers: { "Content-Type": "application/json" } },
+      );
+    }
     console.log(`Gemini response: ${responseText.length} chars`);
 
     // ── Parse & Validate ─────────────────────────────────────
@@ -239,6 +262,7 @@ Deno.serve(async (req: Request) => {
     try {
       soulProfile = JSON.parse(responseText);
     } catch {
+      await burnFiles(allFileNames, storagePrefix);
       return new Response(
         JSON.stringify({ error: "Gemini returned invalid JSON", raw: responseText.slice(0, 500) }),
         { status: 500, headers: { "Content-Type": "application/json" } },
@@ -260,6 +284,7 @@ Deno.serve(async (req: Request) => {
       .single();
 
     if (insertError) {
+      await burnFiles(allFileNames, storagePrefix);
       return new Response(
         JSON.stringify({ error: "Failed to save persona", detail: insertError.message }),
         { status: 500, headers: { "Content-Type": "application/json" } },
@@ -291,6 +316,21 @@ Deno.serve(async (req: Request) => {
     );
   } catch (err) {
     console.error("Fatal error:", err);
+    // Attempt cleanup even on unexpected failures if we have file context
+    try {
+      const body = await req.clone().json().catch(() => ({}));
+      if (body.batchId && body.userId) {
+        const { data: files } = await supabaseClient.storage
+          .from("memories")
+          .list(`${body.userId}/${body.batchId}`);
+        if (files?.length) {
+          await supabaseClient.storage
+            .from("memories")
+            .remove(files.map((f) => `${body.userId}/${body.batchId}/${f.name}`));
+          console.log(`Emergency burn: ${files.length} files cleaned up after fatal error`);
+        }
+      }
+    } catch (_) { /* best effort */ }
     return new Response(
       JSON.stringify({ error: "Internal server error", detail: (err as Error).message }),
       { status: 500, headers: { "Content-Type": "application/json" } },
