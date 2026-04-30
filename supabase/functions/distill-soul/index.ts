@@ -115,14 +115,27 @@ Analyze the following raw communications (journals, letters, transcripts). Extra
 
 Be precise. Infer from patterns, not stereotypes. If data is insufficient for a metric, use neutral baselines (0.5 for 0-1 ranges, 0 for -1 to 1). Output ONLY valid JSON matching the schema exactly.`;
 
+console.log("Hello from Functions!")
+
+// ── CORS ────────────────────────────────────────────────────
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
+
 Deno.serve(async (req: Request) => {
+  // Handle CORS preflight
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   try {
     // ── Auth Check ──────────────────────────────────────────
     const authHeader = req.headers.get("Authorization");
     if (!authHeader) {
       return new Response(JSON.stringify({ error: "Missing Authorization header" }), {
         status: 401,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -137,7 +150,7 @@ Deno.serve(async (req: Request) => {
     if (authError || !user) {
       return new Response(JSON.stringify({ error: "Unauthorized" }), {
         status: 401,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -147,7 +160,7 @@ Deno.serve(async (req: Request) => {
     if (!batchId || !userId) {
       return new Response(JSON.stringify({ error: "Missing batchId or userId" }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -155,7 +168,7 @@ Deno.serve(async (req: Request) => {
     if (userId !== user.id) {
       return new Response(JSON.stringify({ error: "Forbidden: batch belongs to another user" }), {
         status: 403,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -179,7 +192,7 @@ Deno.serve(async (req: Request) => {
     if (listError || !files || files.length === 0) {
       return new Response(
         JSON.stringify({ error: "No files found in batch", detail: listError?.message }),
-        { status: 404, headers: { "Content-Type": "application/json" } },
+        { status: 404, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -213,7 +226,7 @@ Deno.serve(async (req: Request) => {
       await burnFiles(allFileNames, storagePrefix);
       return new Response(
         JSON.stringify({ error: "No processable text files found (supports: .txt, .csv, .md, .json)" }),
-        { status: 400, headers: { "Content-Type": "application/json" } },
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -226,7 +239,7 @@ Deno.serve(async (req: Request) => {
       await burnFiles(allFileNames, storagePrefix);
       return new Response(JSON.stringify({ error: "GEMINI_API_KEY not configured" }), {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -252,7 +265,7 @@ Deno.serve(async (req: Request) => {
       await burnFiles(allFileNames, storagePrefix);
       return new Response(
         JSON.stringify({ error: "Gemini extraction failed", detail: (geminiErr as Error).message }),
-        { status: 500, headers: { "Content-Type": "application/json" } },
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
     console.log(`Gemini response: ${responseText.length} chars`);
@@ -265,7 +278,7 @@ Deno.serve(async (req: Request) => {
       await burnFiles(allFileNames, storagePrefix);
       return new Response(
         JSON.stringify({ error: "Gemini returned invalid JSON", raw: responseText.slice(0, 500) }),
-        { status: 500, headers: { "Content-Type": "application/json" } },
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
@@ -285,7 +298,7 @@ Deno.serve(async (req: Request) => {
         await burnFiles(allFileNames, storagePrefix);
         return new Response(
           JSON.stringify({ error: "Failed to update persona", detail: updateError.message }),
-          { status: 500, headers: { "Content-Type": "application/json" } },
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
@@ -307,7 +320,7 @@ Deno.serve(async (req: Request) => {
         await burnFiles(allFileNames, storagePrefix);
         return new Response(
           JSON.stringify({ error: "Failed to save persona", detail: insertError.message }),
-          { status: 500, headers: { "Content-Type": "application/json" } },
+          { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
         );
       }
 
@@ -333,7 +346,7 @@ Deno.serve(async (req: Request) => {
         files_processed: files.length,
         files_burned: deleteError ? 0 : files.length,
       }),
-      { headers: { "Content-Type": "application/json" } },
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err) {
     console.error("Fatal error:", err);
@@ -354,7 +367,7 @@ Deno.serve(async (req: Request) => {
     } catch (_) { /* best effort */ }
     return new Response(
       JSON.stringify({ error: "Internal server error", detail: (err as Error).message }),
-      { status: 500, headers: { "Content-Type": "application/json" } },
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   }
 });
