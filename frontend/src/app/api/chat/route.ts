@@ -220,7 +220,7 @@ You must translate the numerical and categorical data in the <COGNITIVE_STATE_VE
     let fullDeepseekResponse = "";
 
     const result = streamText({
-      model: deepseek("deepseek-chat"),
+      model: deepseek("deepseek-v4-flash"),
       system: systemPrompt,
       messages: messages.slice(-20).map((m: { role: string; content: string }) => ({
         role: m.role === "user" ? "user" : "assistant",
