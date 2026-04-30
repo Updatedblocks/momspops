@@ -1,12 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
-import { useChat } from "@ai-sdk/react";
 import BottomNav from "@/components/BottomNav";
 import Paywall from "@/components/Paywall";
 import { createClient } from "@/utils/supabase/client";
+
+type Message = { id: string; role: "user" | "model"; content: string };
 
 export default function ChatPage() {
   const router = useRouter();
@@ -35,24 +36,87 @@ export default function ChatPage() {
     if (personaId) loadPersona();
   }, [personaId]);
 
-  // ── useChat hook — streams from /api/chat ──────────────
-  const { messages, append, isLoading, error: chatError } =
-    useChat({
-      api: "/api/chat",
-      body: { personaId },
-      onError: (e) => setError(e.message),
-      onResponse: () => setError(""),
-    });
-
-  // ── Local input state (decoupled from useChat v4) ──────
+  // ── Native chat state (zero SDK dependency) ────────────
+  const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  // ── Bulletproof submit — guards against spamming ───────
-  const onSubmit = (e: React.FormEvent) => {
+  // ── Auto-scroll to latest message ──────────────────────
+  useEffect(() => {
+    messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages]);
+
+  // ── Native streaming submit ────────────────────────────
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
-    append({ role: "user", content: input });
+
+    const userMsg: Message = {
+      id: `u-${Date.now()}`,
+      role: "user",
+      content: input,
+    };
+    const updatedMessages = [...messages, userMsg];
+    setMessages(updatedMessages);
     setInput("");
+    setIsLoading(true);
+    setError("");
+
+    // Placeholder for streaming model response
+    const modelMsgId = `m-${Date.now()}`;
+    setMessages((prev) => [
+      ...prev,
+      { id: modelMsgId, role: "model", content: "" },
+    ]);
+
+    try {
+      const response = await fetch("/api/chat", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ messages: updatedMessages, personaId }),
+      });
+
+      if (!response.ok) {
+        const err = await response.json().catch(() => ({}));
+        throw new Error(err.error || `Chat API returned ${response.status}`);
+      }
+
+      const reader = response.body?.getReader();
+      if (!reader) throw new Error("No response stream");
+
+      const decoder = new TextDecoder();
+      let done = false;
+
+      while (!done) {
+        const { value, done: doneReading } = await reader.read();
+        done = doneReading;
+        if (value) {
+          const chunk = decoder.decode(value, { stream: true });
+          const lines = chunk.split("\n");
+          for (const line of lines) {
+            if (line.startsWith("0:")) {
+              try {
+                const text = JSON.parse(line.slice(2));
+                setMessages((prev) =>
+                  prev.map((m) =>
+                    m.id === modelMsgId
+                      ? { ...m, content: m.content + text }
+                      : m,
+                  ),
+                );
+              } catch {
+                // skip malformed chunks
+              }
+            }
+          }
+        }
+      }
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const displayName = personaName || "Loved One";
@@ -147,6 +211,7 @@ export default function ChatPage() {
         ))}
 
         {/* Reminiscing state — shown while AI is streaming */}
+        <div ref={messagesEndRef} />
         {isLoading && (
           <div className="flex justify-start items-center w-full animate-fade-in">
             <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center mr-3 border border-subtle/60">
