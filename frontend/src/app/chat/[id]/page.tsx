@@ -7,7 +7,12 @@ import BottomNav from "@/components/BottomNav";
 import Paywall from "@/components/Paywall";
 import { createClient } from "@/utils/supabase/client";
 
-type Message = { id: string; role: "user" | "model"; content: string };
+type Message = {
+  id: string;
+  role: "user" | "model";
+  content: string;
+  replyTo?: { id: string; content: string; role: string };
+};
 
 export default function ChatPage() {
   const router = useRouter();
@@ -40,6 +45,7 @@ export default function ChatPage() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
   const [isLoading, setIsLoading] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<Message | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   // ── Auto-scroll to latest message ──────────────────────
@@ -56,10 +62,18 @@ export default function ChatPage() {
       id: `u-${Date.now()}`,
       role: "user",
       content: input,
+      ...(replyingTo && {
+        replyTo: {
+          id: replyingTo.id,
+          content: replyingTo.content.slice(0, 120),
+          role: replyingTo.role,
+        },
+      }),
     };
     const updatedMessages = [...messages, userMsg];
     setMessages(updatedMessages);
     setInput("");
+    setReplyingTo(null);
     setIsLoading(true);
     setError("");
 
@@ -74,7 +88,15 @@ export default function ChatPage() {
       const response = await fetch("/api/chat", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ messages: updatedMessages, personaId }),
+        body: JSON.stringify({
+          messages: updatedMessages.map(({ id, role, content, replyTo }) => ({
+            role,
+            content: replyTo
+              ? `[Replying to: "${replyTo.content}"] ${content}`
+              : content,
+          })),
+          personaId,
+        }),
       });
 
       if (!response.ok) {
@@ -184,7 +206,10 @@ export default function ChatPage() {
           >
             {/* Reply icon — hover reveal */}
             {msg.role === "user" && (
-              <span className="material-symbols-outlined opacity-0 group-hover:opacity-40 transition-opacity cursor-pointer text-sm self-end mb-1 mr-1">
+              <span
+                onClick={() => setReplyingTo(msg)}
+                className="material-symbols-outlined opacity-0 group-hover:opacity-40 transition-opacity cursor-pointer text-sm self-end mb-1 mr-1 hover:opacity-70"
+              >
                 reply
               </span>
             )}
@@ -214,6 +239,19 @@ export default function ChatPage() {
                 </div>
               )}
 
+              {/* Reply quote */}
+              {msg.replyTo && (
+                <div className={`mb-2 px-2 py-1.5 rounded-lg text-[11px] leading-snug border-l-2 ${
+                  msg.role === "user"
+                    ? "bg-white/10 border-white/30 text-white/70"
+                    : "bg-stone-50 dark:bg-stone-800/50 border-rose/40 text-secondary"
+                }`}>
+                  <p className="opacity-70 truncate">
+                    {msg.replyTo.role === "user" ? "You" : displayName}: {msg.replyTo.content}
+                  </p>
+                </div>
+              )}
+
               {/* Content or typing dots */}
               {isStreaming ? (
                 <div className="flex gap-1.5 items-center h-5 px-1 opacity-70">
@@ -240,7 +278,10 @@ export default function ChatPage() {
 
             {/* Reply icon — hover reveal (persona side) */}
             {msg.role !== "user" && (
-              <span className="material-symbols-outlined opacity-0 group-hover:opacity-40 transition-opacity cursor-pointer text-sm self-end mb-1 ml-1">
+              <span
+                onClick={() => setReplyingTo(msg)}
+                className="material-symbols-outlined opacity-0 group-hover:opacity-40 transition-opacity cursor-pointer text-sm self-end mb-1 ml-1 hover:opacity-70"
+              >
                 reply
               </span>
             )}
@@ -256,6 +297,26 @@ export default function ChatPage() {
         onSubmit={onSubmit}
         className="fixed bottom-0 w-full max-w-md mx-auto left-0 right-0 bg-surface border-t border-subtle z-40 pb-[72px] md:pb-safe"
       >
+        {/* Reply preview bar */}
+        {replyingTo && (
+          <div className="flex items-center gap-3 px-4 py-2.5 bg-rose/5 border-b border-rose/10 animate-slide-down">
+            <div className="flex-1 min-w-0">
+              <p className="text-[10px] font-bold uppercase tracking-wider text-rose/70 mb-0.5">
+                Replying to {replyingTo.role === "user" ? "yourself" : displayName}
+              </p>
+              <p className="text-xs text-secondary truncate">
+                {replyingTo.content.slice(0, 80)}
+              </p>
+            </div>
+            <button
+              type="button"
+              onClick={() => setReplyingTo(null)}
+              className="text-secondary/60 hover:text-rose transition-colors p-1"
+            >
+              <span className="material-symbols-outlined text-lg">close</span>
+            </button>
+          </div>
+        )}
         <div className="max-w-4xl mx-auto px-4 py-4 md:px-6">
           <div className="flex items-end gap-3 bg-base rounded-3xl border border-subtle p-2 shadow-[0_-2px_20px_rgba(0,0,0,0.02)] transition-shadow focus-within:shadow-[0_-2px_25px_rgba(196,154,154,0.1)] focus-within:border-rose/30">
             <button
