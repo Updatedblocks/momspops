@@ -1,11 +1,47 @@
-import { streamText } from "ai";
-import { google } from "@ai-sdk/google";
+import { formatStreamPart } from "ai";
+import { SignJWT, importPKCS8 } from "jose";
 import { createServerClient } from "@supabase/ssr";
 import { type NextRequest, NextResponse } from "next/server";
 
+// ── Get GCP access token via Service Account JWT ──────────
+async function getAccessToken(): Promise<string> {
+  const raw = process.env.GCP_SERVICE_ACCOUNT;
+  if (!raw) throw new Error("GCP_SERVICE_ACCOUNT not configured");
+
+  const sa = JSON.parse(raw);
+  const now = Math.floor(Date.now() / 1000);
+
+  const jwt = await new SignJWT({
+    iss: sa.client_email,
+    sub: sa.client_email,
+    scope: "https://www.googleapis.com/auth/cloud-platform",
+    aud: "https://oauth2.googleapis.com/token",
+  })
+    .setProtectedHeader({ alg: "RS256" })
+    .setIssuedAt(now)
+    .setExpirationTime(now + 3600)
+    .sign(await importPKCS8(sa.private_key, "RS256"));
+
+  const res = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "Content-Type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion: jwt,
+    }),
+  });
+
+  if (!res.ok) {
+    throw new Error(`OAuth2 failed: ${res.status} ${await res.text()}`);
+  }
+
+  const { access_token } = await res.json();
+  return access_token;
+}
+
 export async function POST(request: NextRequest) {
   try {
-    // ── Auth Check ──────────────────────────────────────────
+    // ── Auth Check ────────────────────────────────────────
     let supabaseResponse = NextResponse.next({ request });
 
     const supabase = createServerClient(
@@ -38,7 +74,7 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    // ── Parse Payload ───────────────────────────────────────
+    // ── Parse Payload ─────────────────────────────────────
     const body = await request.json();
     const { messages, personaId } = body;
 
@@ -49,7 +85,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    // ── Fetch Persona (with RLS safety) ──────────────────────
+    // ── Fetch Persona ─────────────────────────────────────
     const { data: persona, error: personaError } = await supabase
       .from("personas")
       .select("name, relation, soul_profile, status")
@@ -58,72 +94,137 @@ export async function POST(request: NextRequest) {
       .single();
 
     if (personaError || !persona) {
-      return NextResponse.json(
-        { error: "Persona not found" },
-        { status: 404 },
-      );
+      return NextResponse.json({ error: "Persona not found" }, { status: 404 });
     }
 
     if (persona.status !== "ready") {
       return NextResponse.json(
-        { error: "This persona is still distilling. Please wait." },
+        { error: "This persona is still distilling." },
         { status: 409 },
       );
     }
 
-    // ── Margin Ledger: Echo Check ───────────────────────────
-    const { data: profile, error: profileError } = await supabase
+    // ── Echo Ledger ───────────────────────────────────────
+    const { data: profile } = await supabase
       .from("profiles")
       .select("echo_balance")
       .eq("id", user.id)
       .single();
 
-    if (profileError || !profile) {
+    if (!profile || profile.echo_balance <= 0) {
       return NextResponse.json(
-        { error: "Profile not found" },
-        { status: 404 },
-      );
-    }
-
-    if (profile.echo_balance <= 0) {
-      return NextResponse.json(
-        { error: "Out of Echoes. Please upgrade your plan to continue." },
+        { error: "Out of Echoes. Please upgrade your plan." },
         { status: 403 },
       );
     }
 
-    // Deduct 1 Echo
     await supabase
       .from("profiles")
       .update({ echo_balance: profile.echo_balance - 1 })
       .eq("id", user.id);
 
-    // ── RAG Prompt Injection ────────────────────────────────
+    // ── RAG System Prompt ─────────────────────────────────
     const soulProfile = persona.soul_profile || {};
     const personalityBlock = Object.keys(soulProfile).length > 0
-      ? `\n\nPSYCHOLOGICAL PROFILE (adhere strictly to these traits):\n${JSON.stringify(soulProfile, null, 2)}`
+      ? `\n\nPSYCHOLOGICAL PROFILE (strictly adhere to these traits):\n${JSON.stringify(soulProfile, null, 2)}`
       : "";
 
-    const system = `You are simulating the persona of ${persona.name}, the ${persona.relation} to the user. 
+    const systemPrompt = `You are simulating the persona of ${persona.name}, the ${persona.relation} to the user. 
 
 You are a real person — a loved one preserved through memory. Do NOT break character. Do NOT mention you are an AI, a language model, or a simulation. You speak naturally, warmly, and with the unique voice of your persona.
 
-If asked who you are, simply respond as ${persona.name} would. You have memories, opinions, quirks, and a distinct way of speaking.
+If asked who you are, simply respond as ${persona.name} would. Keep responses warm and conversational.${personalityBlock}`;
 
-Keep responses warm and conversational. If the user shares something emotional, respond with genuine care. If they're casual, match their tone.${personalityBlock}`;
+    // ── GCP OAuth2 ────────────────────────────────────────
+    const accessToken = await getAccessToken();
+    const projectId = process.env.GCP_PROJECT_ID;
+    if (!projectId) throw new Error("GCP_PROJECT_ID not configured");
 
-    // ── Stream Response ──────────────────────────────────────
-    const result = streamText({
-      model: google("gemini-2.5-flash", {
-        apiKey: process.env.GEMINI_API_KEY,
-      }),
-      system,
-      messages: messages.slice(-20), // rolling window of last 20 messages
-      temperature: 0.7,
-      maxTokens: 1024,
+    // ── Vertex AI Streaming Call ──────────────────────────
+    const vertexUrl = `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/gemini-2.5-flash:streamGenerateContent?alt=sse`;
+
+    const vertexPayload = {
+      contents: messages.slice(-20).map((m: { role: string; content: string }) => ({
+        role: m.role === "user" ? "user" : "model",
+        parts: [{ text: m.content }],
+      })),
+      systemInstruction: {
+        parts: [{ text: systemPrompt }],
+      },
+      generationConfig: {
+        temperature: 0.7,
+        maxOutputTokens: 1024,
+      },
+    };
+
+    const vertexRes = await fetch(vertexUrl, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: JSON.stringify(vertexPayload),
     });
 
-    return result.toDataStreamResponse();
+    if (!vertexRes.ok) {
+      const errText = await vertexRes.text();
+      console.error("Vertex error:", errText);
+      return NextResponse.json(
+        { error: `Vertex AI error: ${vertexRes.status}` },
+        { status: 502 },
+      );
+    }
+
+    // ── Parse SSE stream → AI SDK data stream ─────────────
+    const encoder = new TextEncoder();
+    const reader = vertexRes.body!.getReader();
+    const decoder = new TextDecoder();
+    let buffer = "";
+
+    const stream = new ReadableStream({
+      async pull(controller) {
+        while (true) {
+          const { done, value } = await reader.read();
+          if (done) {
+            // Send finish signal
+            controller.enqueue(
+              encoder.encode(formatStreamPart("finish", { finishReason: "stop" })),
+            );
+            controller.close();
+            return;
+          }
+
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split("\n");
+          buffer = lines.pop() || "";
+
+          for (const line of lines) {
+            if (!line.startsWith("data: ")) continue;
+            const jsonStr = line.slice(6).trim();
+            if (!jsonStr) continue;
+
+            try {
+              const chunk = JSON.parse(jsonStr);
+              const text = chunk.candidates?.[0]?.content?.parts?.[0]?.text;
+              if (text) {
+                controller.enqueue(
+                  encoder.encode(formatStreamPart("text", text)),
+                );
+              }
+            } catch {
+              // skip malformed chunks
+            }
+          }
+        }
+      },
+    });
+
+    return new Response(stream, {
+      headers: {
+        "Content-Type": "text/plain; charset=utf-8",
+        "x-vercel-ai-data-stream": "v1",
+      },
+    });
   } catch (err) {
     console.error("Chat API error:", err);
     return NextResponse.json(
