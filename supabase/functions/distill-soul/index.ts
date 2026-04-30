@@ -291,10 +291,10 @@ Deno.serve(async (req: Request) => {
     const { access_token } = await tokenRes.json();
 
     // ── Call Vertex AI REST API ──────────────────────────────
-    const vertexUrl = `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/gemini-1.5-pro-001:generateContent`;
+    const vertexUrl = `https://us-central1-aiplatform.googleapis.com/v1/projects/${projectId}/locations/us-central1/publishers/google/models/gemini-2.5-flash:generateContent`;
     const prompt = `${SYSTEM_PROMPT}\n\nRAW COMMUNICATIONS:\n${combinedText.slice(0, 900000)}`;
 
-    console.log("Calling Vertex AI Gemini 1.5 Pro...");
+    console.log("Calling Vertex AI Gemini 2.5 Flash...");
 
     let responseText: string;
     try {
