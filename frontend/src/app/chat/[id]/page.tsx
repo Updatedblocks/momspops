@@ -232,7 +232,7 @@ export default function ChatPage() {
             {msg.role === "user" && (
               <span
                 onClick={() => setReplyingTo(msg)}
-                className="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-sm self-end mb-1 text-secondary hover:text-rose bg-surface/80 rounded-full p-1 shadow-sm"
+                className="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-sm self-end mb-1 text-white dark:text-stone-900 bg-stone-900/90 dark:bg-[#FDFBF7]/90 rounded-full p-1 shadow-sm"
               >
                 reply
               </span>
@@ -304,7 +304,7 @@ export default function ChatPage() {
             {msg.role !== "user" && (
               <span
                 onClick={() => setReplyingTo(msg)}
-                className="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-sm self-end mb-1 ml-1 text-secondary hover:text-rose bg-surface/80 rounded-full p-1 shadow-sm"
+                className="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-sm self-end mb-1 ml-1 text-white dark:text-stone-900 bg-stone-900/90 dark:bg-[#FDFBF7]/90 rounded-full p-1 shadow-sm"
               >
                 reply
               </span>
