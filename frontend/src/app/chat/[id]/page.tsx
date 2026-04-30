@@ -36,13 +36,24 @@ export default function ChatPage() {
   }, [personaId]);
 
   // ── useChat hook — streams from /api/chat ──────────────
-  const { messages, input, handleInputChange, handleSubmit, isLoading, error: chatError } =
+  const { messages, append, isLoading, error: chatError } =
     useChat({
       api: "/api/chat",
       body: { personaId },
       onError: (e) => setError(e.message),
       onResponse: () => setError(""),
     });
+
+  // ── Local input state (decoupled from useChat v4) ──────
+  const [input, setInput] = useState("");
+
+  // ── Bulletproof submit — guards against spamming ───────
+  const onSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!input.trim() || isLoading) return;
+    append({ role: "user", content: input });
+    setInput("");
+  };
 
   const displayName = personaName || "Loved One";
 
@@ -159,7 +170,7 @@ export default function ChatPage() {
 
       {/* Input area */}
       <form
-        onSubmit={handleSubmit}
+        onSubmit={onSubmit}
         className="fixed bottom-0 w-full max-w-md mx-auto left-0 right-0 bg-surface border-t border-subtle z-40 pb-[72px] md:pb-safe"
       >
         <div className="max-w-4xl mx-auto px-4 py-4 md:px-6">
@@ -187,14 +198,15 @@ export default function ChatPage() {
             <div className="flex-grow">
               <textarea
                 value={input}
-                onChange={handleInputChange}
-                className="w-full bg-transparent border-none focus:ring-0 resize-none max-h-32 min-h-[44px] py-3 text-primary placeholder:text-secondary/50"
+                onChange={(e) => setInput(e.target.value)}
+                disabled={isLoading}
+                className="w-full bg-transparent border-none focus:ring-0 resize-none max-h-32 min-h-[44px] py-3 text-primary placeholder:text-secondary/50 disabled:opacity-40"
                 placeholder={`Message ${displayName}...`}
                 rows={1}
                 onKeyDown={(e) => {
                   if (e.key === "Enter" && !e.shiftKey) {
                     e.preventDefault();
-                    handleSubmit(e);
+                    onSubmit(e);
                   }
                 }}
                 style={{ scrollbarWidth: "none" }}
