@@ -134,7 +134,7 @@ export default function ChatPage() {
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
 
-          <div className="flex items-center gap-2">
+          <Link href={`/chat/${personaId}/manage`} className="flex items-center gap-2 hover:opacity-70 transition-opacity">
             <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center mr-2 border border-subtle/60">
               <span className="font-serif text-sm text-primary/70">
                 {displayName.charAt(0)}
@@ -143,7 +143,7 @@ export default function ChatPage() {
             <h1 className="text-2xl font-serif font-bold text-primary tracking-tight not-italic">
               {displayName}&apos;s Legacy
             </h1>
-          </div>
+          </Link>
 
           <button
             onClick={() => setPaywallOpen(true)}
@@ -190,10 +190,10 @@ export default function ChatPage() {
 
             {/* Message bubble */}
             <div
-              className={`max-w-[85%] sm:max-w-[75%] rounded-2xl px-6 py-4 shadow-sm ${
+              className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
                 msg.role === "user"
-                  ? "bg-stone-100 dark:bg-stone-800 border border-stone-200 dark:border-stone-700 rounded-tr-sm ml-auto"
-                  : "bg-rose/10 dark:bg-rose/15 border border-rose/20 dark:border-rose/25 rounded-tl-sm mr-auto"
+                  ? "bg-stone-900 text-[#FDFBF7] dark:bg-stone-100 dark:text-stone-900 rounded-tr-sm ml-auto"
+                  : "bg-surface border border-subtle text-primary rounded-tl-sm mr-auto"
               }`}
             >
               {msg.role !== "user" && (
@@ -210,24 +210,19 @@ export default function ChatPage() {
           </div>
         ))}
 
-        {/* Reminiscing state — shown while AI is streaming */}
+        {/* Typing indicator — bouncing dots */}
         <div ref={messagesEndRef} />
         {isLoading && (
-          <div className="flex justify-start items-center w-full animate-fade-in">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center mr-3 border border-subtle/60">
+          <div className="flex justify-start w-full animate-fade-in">
+            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center mt-1 mr-3 self-start border border-subtle/60">
               <span className="font-serif text-sm text-primary/70">
                 {displayName.charAt(0)}
               </span>
             </div>
-            <div className="max-w-[85%] sm:max-w-[75%] bg-surface rounded-2xl rounded-tl-sm px-4 py-3 border border-subtle/50 flex items-center gap-3">
-              <div className="flex space-x-1.5 animate-pulse">
-                <div className="w-1.5 h-1.5 bg-rose/40 rounded-full" style={{ animationDelay: "0ms" }} />
-                <div className="w-1.5 h-1.5 bg-rose/40 rounded-full" style={{ animationDelay: "150ms" }} />
-                <div className="w-1.5 h-1.5 bg-rose/40 rounded-full" style={{ animationDelay: "300ms" }} />
-              </div>
-              <p className="text-sm text-secondary italic">
-                {displayName} is reminiscing...
-              </p>
+            <div className="bg-surface border border-subtle rounded-2xl rounded-tl-sm px-4 py-3 max-w-[75%] shadow-sm flex gap-1 w-16 h-10 items-center justify-center">
+              <div className="w-2 h-2 rounded-full bg-secondary animate-bounce-delay"></div>
+              <div className="w-2 h-2 rounded-full bg-secondary animate-bounce-delay delay-100"></div>
+              <div className="w-2 h-2 rounded-full bg-secondary animate-bounce-delay delay-200"></div>
             </div>
           </div>
         )}

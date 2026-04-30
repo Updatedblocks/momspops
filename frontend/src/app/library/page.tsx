@@ -82,6 +82,7 @@ export default function LibraryPage() {
       .order("created_at", { ascending: false });
 
     if (!error && data) {
+      // Full replacement — never append
       setPersonas(data);
     }
     setLoading(false);
