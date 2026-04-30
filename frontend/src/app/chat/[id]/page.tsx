@@ -172,14 +172,24 @@ export default function ChatPage() {
           </div>
         )}
 
-        {messages.map((msg) => (
+        {messages.map((msg) => {
+          const isLast = msg.id === messages[messages.length - 1]?.id;
+          const isStreaming = msg.role === "model" && msg.content === "" && isLoading && isLast;
+          return (
           <div
             key={msg.id}
-            className={`flex w-full animate-fade-in-up ${
+            className={`flex w-full animate-fade-in-up group ${
               msg.role === "user" ? "justify-end" : "justify-start"
             }`}
           >
-            {/* Persona avatar (left side) */}
+            {/* Reply icon — hover reveal */}
+            {msg.role === "user" && (
+              <span className="material-symbols-outlined opacity-0 group-hover:opacity-40 transition-opacity cursor-pointer text-sm self-end mb-1 mr-1">
+                reply
+              </span>
+            )}
+
+            {/* Persona avatar */}
             {msg.role !== "user" && (
               <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center mt-1 mr-3 self-start border border-subtle/60">
                 <span className="font-serif text-sm text-primary/70">
@@ -190,42 +200,55 @@ export default function ChatPage() {
 
             {/* Message bubble */}
             <div
-              className={`max-w-[75%] rounded-2xl px-4 py-2 text-sm shadow-sm ${
+              className={`max-w-[75%] rounded-2xl px-4 py-2 shadow-sm ${
                 msg.role === "user"
-                  ? "bg-stone-900 text-[#FDFBF7] dark:bg-stone-100 dark:text-stone-900 rounded-tr-sm ml-auto"
+                  ? "bg-stone-900 text-[#FDFBF7] dark:bg-[#FDFBF7] dark:text-[#1A1A1A] rounded-tr-sm ml-auto"
                   : "bg-surface border border-subtle text-primary rounded-tl-sm mr-auto"
               }`}
             >
               {msg.role !== "user" && (
-                <div className="flex items-center gap-2 mb-2">
-                  <span className="text-sm font-serif text-primary/80">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-xs font-serif text-primary/70">
                     {displayName}
                   </span>
                 </div>
               )}
-              <p className="text-primary text-sm leading-relaxed whitespace-pre-wrap">
-                {msg.content}
-              </p>
-            </div>
-          </div>
-        ))}
 
-        {/* Typing indicator — bouncing dots */}
-        <div ref={messagesEndRef} />
-        {isLoading && (
-          <div className="flex justify-start w-full animate-fade-in">
-            <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center mt-1 mr-3 self-start border border-subtle/60">
-              <span className="font-serif text-sm text-primary/70">
-                {displayName.charAt(0)}
+              {/* Content or typing dots */}
+              {isStreaming ? (
+                <div className="flex gap-1.5 items-center h-5 px-1 opacity-70">
+                  <div className="w-1.5 h-1.5 rounded-full bg-current animate-bounce-delay"></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-current animate-bounce-delay delay-100"></div>
+                  <div className="w-1.5 h-1.5 rounded-full bg-current animate-bounce-delay delay-200"></div>
+                </div>
+              ) : (
+                <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                  {msg.content}
+                </p>
+              )}
+
+              {/* Timestamp + read receipt */}
+              {!isStreaming && (
+                <div className="flex items-center justify-end gap-1 mt-1 opacity-60 text-[10px] tracking-wide">
+                  <span>{new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                  {msg.role === "user" && (
+                    <span className="material-symbols-outlined text-[14px]">done_all</span>
+                  )}
+                </div>
+              )}
+            </div>
+
+            {/* Reply icon — hover reveal (persona side) */}
+            {msg.role !== "user" && (
+              <span className="material-symbols-outlined opacity-0 group-hover:opacity-40 transition-opacity cursor-pointer text-sm self-end mb-1 ml-1">
+                reply
               </span>
-            </div>
-            <div className="bg-surface border border-subtle rounded-2xl rounded-tl-sm px-4 py-3 max-w-[75%] shadow-sm flex gap-1 w-16 h-10 items-center justify-center">
-              <div className="w-2 h-2 rounded-full bg-secondary animate-bounce-delay"></div>
-              <div className="w-2 h-2 rounded-full bg-secondary animate-bounce-delay delay-100"></div>
-              <div className="w-2 h-2 rounded-full bg-secondary animate-bounce-delay delay-200"></div>
-            </div>
+            )}
           </div>
-        )}
+        )})}
+
+        {/* Auto-scroll anchor */}
+        <div ref={messagesEndRef} />
       </main>
 
       {/* Input area */}
