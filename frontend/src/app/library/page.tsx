@@ -100,7 +100,8 @@ export default function LibraryPage() {
 
     const interval = setInterval(fetchPersonas, 5000);
     return () => clearInterval(interval);
-  }, [personas]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [personas.filter(p => p.status === "distilling").length]);
 
   const readyPersonas = personas.filter((p) => p.status === "ready");
   const distillingPersonas = personas.filter((p) => p.status === "distilling");
