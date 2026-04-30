@@ -331,22 +331,26 @@ export default function ChatPage() {
 
             {/* Reply icon — hover reveal (user: right of bubble) */}
             {msg.role === "user" && (
-              <span
+              <button
+                type="button"
+                aria-label="Reply to message"
                 onClick={() => setReplyingTo(msg)}
-                className="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-sm self-end ml-1 mb-1 text-white dark:text-stone-900 bg-stone-900/90 dark:bg-[#FDFBF7]/90 rounded-full p-1 shadow-sm flex-shrink-0"
+                className="material-symbols-outlined opacity-40 hover:opacity-100 group-hover:opacity-80 transition-opacity duration-200 cursor-pointer text-sm self-end ml-1 mb-1 text-secondary hover:text-rose bg-surface border border-subtle/60 rounded-full p-1 shadow-sm flex-shrink-0 btn-press"
               >
                 reply
-              </span>
+              </button>
             )}
 
             {/* Reply icon — hover reveal (persona: left of bubble) */}
             {msg.role !== "user" && (
-              <span
+              <button
+                type="button"
+                aria-label="Reply to message"
                 onClick={() => setReplyingTo(msg)}
-                className="material-symbols-outlined opacity-0 group-hover:opacity-100 transition-opacity cursor-pointer text-sm self-end mb-1 ml-1 text-white dark:text-stone-900 bg-stone-900/90 dark:bg-[#FDFBF7]/90 rounded-full p-1 shadow-sm flex-shrink-0"
+                className="material-symbols-outlined opacity-40 hover:opacity-100 group-hover:opacity-80 transition-opacity duration-200 cursor-pointer text-sm self-end mb-1 ml-1 text-secondary hover:text-rose bg-surface border border-subtle/60 rounded-full p-1 shadow-sm flex-shrink-0 btn-press"
               >
                 reply
-              </span>
+              </button>
             )}
           </div>
         )})}
