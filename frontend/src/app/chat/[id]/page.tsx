@@ -6,7 +6,6 @@ import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
 import Paywall from "@/components/Paywall";
 import { createClient } from "@/utils/supabase/client";
-import { createParser } from "eventsource-parser";
 
 type Message = {
   id: string;
@@ -132,12 +131,20 @@ export default function ChatPage() {
       if (!reader) throw new Error("No response stream");
 
       const decoder = new TextDecoder();
+      let buffer = "";
 
-      const parser = createParser({
-        onEvent(event) {
-          if (event.data && event.data.startsWith("0:")) {
+      while (true) {
+        const { done, value } = await reader.read();
+        if (done) break;
+
+        buffer += decoder.decode(value, { stream: true });
+        const lines = buffer.split("\n");
+        buffer = lines.pop() || "";
+
+        for (const line of lines) {
+          if (line.startsWith("0:")) {
             try {
-              const text = JSON.parse(event.data.slice(2));
+              const text = JSON.parse(line.slice(2));
               setMessages((prev) =>
                 prev.map((m) =>
                   m.id === modelMsgId
@@ -149,13 +156,7 @@ export default function ChatPage() {
               // skip malformed
             }
           }
-        },
-      });
-
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-        parser.feed(decoder.decode(value, { stream: true }));
+        }
       }
     } catch (err) {
       setError((err as Error).message);
