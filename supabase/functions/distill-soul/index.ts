@@ -142,7 +142,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Parse Payload ───────────────────────────────────────
-    const { batchId, userId, personaName = "Untitled", personaRelation = "Loved One" } = await req.json();
+    const { batchId, userId, personaId, personaName = "Untitled", personaRelation = "Loved One" } = await req.json();
 
     if (!batchId || !userId) {
       return new Response(JSON.stringify({ error: "Missing batchId or userId" }), {
@@ -269,29 +269,50 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // ── Save to Personas ─────────────────────────────────────
-    const { data: persona, error: insertError } = await supabaseClient
-      .from("personas")
-      .insert({
-        user_id: userId,
-        name: personaName,
-        relation: personaRelation,
-        soul_profile: soulProfile,
-        status: "ready",
-        tone: "distilled",
-      })
-      .select("id")
-      .single();
+    // ── Update Stub Persona (frontend created stub with status:'distilling') ──
+    if (personaId) {
+      const { error: updateError } = await supabaseClient
+        .from("personas")
+        .update({
+          soul_profile: soulProfile,
+          status: "ready",
+          tone: "distilled",
+        })
+        .eq("id", personaId)
+        .eq("user_id", userId); // safety: only own personas
 
-    if (insertError) {
-      await burnFiles(allFileNames, storagePrefix);
-      return new Response(
-        JSON.stringify({ error: "Failed to save persona", detail: insertError.message }),
-        { status: 500, headers: { "Content-Type": "application/json" } },
-      );
+      if (updateError) {
+        await burnFiles(allFileNames, storagePrefix);
+        return new Response(
+          JSON.stringify({ error: "Failed to update persona", detail: updateError.message }),
+          { status: 500, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      console.log(`Persona updated: ${personaId}`);
+    } else {
+      // Fallback: create new persona if no stub was provided
+      const { error: insertError } = await supabaseClient
+        .from("personas")
+        .insert({
+          user_id: userId,
+          name: personaName,
+          relation: personaRelation,
+          soul_profile: soulProfile,
+          status: "ready",
+          tone: "distilled",
+        });
+
+      if (insertError) {
+        await burnFiles(allFileNames, storagePrefix);
+        return new Response(
+          JSON.stringify({ error: "Failed to save persona", detail: insertError.message }),
+          { status: 500, headers: { "Content-Type": "application/json" } },
+        );
+      }
+
+      console.log("Persona created (no stub)");
     }
-
-    console.log(`Persona created: ${persona.id}`);
 
     // ── Burn After Reading ───────────────────────────────────
     const { error: deleteError } = await supabaseClient.storage
@@ -307,7 +328,7 @@ Deno.serve(async (req: Request) => {
     return new Response(
       JSON.stringify({
         success: true,
-        persona_id: persona.id,
+        persona_id: personaId || null,
         status: "ready",
         files_processed: files.length,
         files_burned: deleteError ? 0 : files.length,

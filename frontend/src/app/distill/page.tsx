@@ -113,6 +113,24 @@ export default function DistillPage() {
         }
       }
 
+      // ── Create Stub Persona (appears instantly in Library) ──
+      const { data: stubPersona, error: stubError } = await supabase
+        .from("personas")
+        .insert({
+          user_id: userId,
+          name: "New Soul",
+          relation: "Being distilled...",
+          status: "distilling",
+        })
+        .select("id")
+        .single();
+
+      if (stubError || !stubPersona) {
+        alert(`Failed to create distillation stub: ${stubError?.message}`);
+        setIsDistilling(false);
+        return;
+      }
+
       // ── Invoke Edge Function for distillation ────────────
       const { data, error: fnError } = await supabase.functions.invoke(
         "distill-soul",
@@ -120,6 +138,7 @@ export default function DistillPage() {
           body: {
             userId,
             batchId,
+            personaId: stubPersona.id,
             personaName: "Distilled Soul",
             personaRelation: "Loved One",
           },
