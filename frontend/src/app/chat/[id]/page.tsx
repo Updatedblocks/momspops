@@ -150,21 +150,20 @@ export default function ChatPage() {
         throw new Error(err.error || `Chat API returned ${response.status}`);
       }
 
-      const reader = response.body?.getReader();
-      if (!reader) throw new Error("No response stream");
-
       // Read full response as text (AI SDK v6 toTextStreamResponse produces plain text)
       const fullText = await response.text();
 
-      if (fullText.trim()) {
-        setMessages((prev) =>
-          prev.map((m) =>
-            m.id === modelMsgId
-              ? { ...m, content: fullText }
-              : m,
-          ),
-        );
+      if (!fullText.trim()) {
+        throw new Error("Empty response from server");
       }
+
+      setMessages((prev) =>
+        prev.map((m) =>
+          m.id === modelMsgId
+            ? { ...m, content: fullText }
+            : m,
+        ),
+      );
     } catch (err) {
       setError((err as Error).message);
     } finally {
