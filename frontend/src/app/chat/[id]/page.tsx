@@ -11,6 +11,7 @@ type Message = {
   id: string;
   role: "user" | "model";
   content: string;
+  timestamp: number;
   replyTo?: { id: string; content: string; role: string };
 };
 
@@ -59,6 +60,7 @@ export default function ChatPage() {
             id: `hist-${i}-${Date.now()}`,
             role: msg.role === "assistant" ? "model" : (msg.role as "user" | "model"),
             content: msg.content,
+            timestamp: new Date(msg.created_at).getTime(),
           })),
         );
       }
@@ -106,10 +108,12 @@ export default function ChatPage() {
     e.preventDefault();
     if (!input.trim() || isLoading) return;
 
+    const now = Date.now();
     const userMsg: Message = {
-      id: `u-${Date.now()}`,
+      id: `u-${now}`,
       role: "user",
       content: input,
+      timestamp: now,
       ...(replyingTo && {
         replyTo: {
           id: replyingTo.id,
@@ -126,10 +130,10 @@ export default function ChatPage() {
     setError("");
 
     // Placeholder for streaming model response
-    const modelMsgId = `m-${Date.now()}`;
+    const modelMsgId = `m-${now}`;
     setMessages((prev) => [
       ...prev,
-      { id: modelMsgId, role: "model", content: "" },
+      { id: modelMsgId, role: "model", content: "", timestamp: now },
     ]);
 
     try {
@@ -314,7 +318,7 @@ export default function ChatPage() {
               {/* Timestamp + read receipt */}
               {!isStreaming && (
                 <div className="flex items-center justify-end gap-1 mt-1 opacity-60 text-[10px] tracking-wide">
-                  <span>{new Date().toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
+                  <span>{new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}</span>
                   {msg.role === "user" && (
                     <span className="material-symbols-outlined text-[14px]">done_all</span>
                   )}
