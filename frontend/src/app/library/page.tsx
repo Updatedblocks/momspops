@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
+import Paywall from "@/components/Paywall";
 import { useSettingsStore } from "@/store/useSettingsStore";
 import { createClient } from "@/utils/supabase/client";
 
@@ -69,6 +70,7 @@ function DistillingCard({ persona }: { persona: LibraryPersona }) {
 export default function LibraryPage() {
   const avatarUrl = useSettingsStore((s) => s.profile.avatarUrl);
   const userId = useSettingsStore((s) => s.user.id);
+  const [paywallOpen, setPaywallOpen] = useState(false);
   const [personas, setPersonas] = useState<LibraryPersona[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -221,8 +223,8 @@ export default function LibraryPage() {
               </Link>
 
               {/* Premium / Tier Up */}
-              <Link
-                href="/settings?tab=upgrade"
+              <button
+                onClick={() => setPaywallOpen(true)}
                 className="flex flex-col items-center gap-2 cursor-pointer group animate-fade-in-up"
                 style={{ animationDelay: `${(readyPersonas.length + 1) * 80}ms` }}
               >
@@ -232,13 +234,14 @@ export default function LibraryPage() {
                 <span className="text-xs text-secondary group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
                   Upgrade
                 </span>
-              </Link>
+              </button>
             </div>
           </section>
         )}
       </main>
 
       <BottomNav />
+      <Paywall open={paywallOpen} onClose={() => setPaywallOpen(false)} />
     </div>
   );
 }
