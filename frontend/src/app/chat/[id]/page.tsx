@@ -21,6 +21,7 @@ export default function ChatPage() {
   const [paywallOpen, setPaywallOpen] = useState(false);
   const [personaName, setPersonaName] = useState("");
   const [personaRelation, setPersonaRelation] = useState("");
+  const [personaAvatarUrl, setPersonaAvatarUrl] = useState<string | null>(null);
   const [error, setError] = useState("");
 
   // ── Fetch persona details ──────────────────────────────
@@ -29,13 +30,14 @@ export default function ChatPage() {
       const supabase = createClient();
       const { data } = await supabase
         .from("personas")
-        .select("name, relation, status")
+        .select("name, relation, status, avatar_url")
         .eq("id", personaId)
         .single();
 
       if (data) {
         setPersonaName(data.name);
         setPersonaRelation(data.relation);
+        setPersonaAvatarUrl(data.avatar_url || null);
       }
     }
     if (personaId) loadPersona();
@@ -187,10 +189,14 @@ export default function ChatPage() {
           </button>
 
           <Link href={`/chat/${personaId}/manage`} className="flex items-center gap-2 hover:opacity-70 transition-opacity">
-            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center mr-2 border border-subtle/60">
-              <span className="font-serif text-sm text-primary/70">
-                {displayName.charAt(0)}
-              </span>
+            <div className="w-8 h-8 rounded-full bg-muted flex items-center justify-center mr-2 border border-subtle/60 overflow-hidden">
+              {personaAvatarUrl ? (
+                <img src={personaAvatarUrl} alt={displayName} className="w-full h-full object-cover" />
+              ) : (
+                <span className="font-serif text-sm text-primary/70">
+                  {displayName.charAt(0)}
+                </span>
+              )}
             </div>
             <h1 className="text-2xl font-serif font-bold text-primary tracking-tight not-italic">
               {displayName}&apos;s Legacy
@@ -252,10 +258,14 @@ export default function ChatPage() {
             )}
             {/* Persona avatar */}
             {msg.role !== "user" && (
-              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center mt-1 mr-3 self-start border border-subtle/60">
-                <span className="font-serif text-sm text-primary/70">
-                  {displayName.charAt(0)}
-                </span>
+              <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted flex items-center justify-center mt-1 mr-3 self-start border border-subtle/60 overflow-hidden">
+                {personaAvatarUrl ? (
+                  <img src={personaAvatarUrl} alt={displayName} className="w-full h-full object-cover" />
+                ) : (
+                  <span className="font-serif text-sm text-primary/70">
+                    {displayName.charAt(0)}
+                  </span>
+                )}
               </div>
             )}
 

@@ -13,6 +13,7 @@ interface LibraryPersona {
   status: string;
   tone?: string;
   created_at: string;
+  avatar_url?: string | null;
 }
 
 // ── Elegant Empty State (Stitch-designed semantic tokens) ──
@@ -77,7 +78,7 @@ export default function LibraryPage() {
     const supabase = createClient();
     const { data, error } = await supabase
       .from("personas")
-      .select("id, name, relation, status, tone, created_at")
+      .select("id, name, relation, status, tone, created_at, avatar_url")
       .eq("user_id", userId)
       .order("created_at", { ascending: false });
 
@@ -196,9 +197,13 @@ export default function LibraryPage() {
                   </span>
                   {/* Avatar */}
                   <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center border-2 border-subtle/60 shadow-sm group-hover:scale-110 transition-transform duration-500 overflow-hidden">
-                    <span className="font-serif text-h2 text-primary/70">
-                      {persona.name.charAt(0)}
-                    </span>
+                    {persona.avatar_url ? (
+                      <img src={persona.avatar_url} alt={persona.name} className="w-full h-full object-cover" />
+                    ) : (
+                      <span className="font-serif text-h2 text-primary/70">
+                        {persona.name.charAt(0)}
+                      </span>
+                    )}
                   </div>
                   <div className="text-center z-10">
                     <h3 className="font-serif text-base text-primary">

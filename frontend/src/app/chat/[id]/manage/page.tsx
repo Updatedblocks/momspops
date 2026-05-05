@@ -1,7 +1,7 @@
 "use client";
 
 import { useRouter, useParams } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { createClient } from "@/utils/supabase/client";
 import UnsavedModal from "@/components/UnsavedModal";
 
@@ -12,11 +12,15 @@ export default function PersonaManagePage() {
   const [mounted, setMounted] = useState(false);
   const [showUnsaved, setShowUnsaved] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
 
   const [name, setName] = useState("");
   const [relation, setRelation] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string | null>(null);
   const [origName, setOrigName] = useState("");
   const [origRelation, setOrigRelation] = useState("");
+  const [origAvatarUrl, setOrigAvatarUrl] = useState<string | null>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Fetch persona from Supabase ─────────────────────
   useEffect(() => {
@@ -24,15 +28,17 @@ export default function PersonaManagePage() {
       const supabase = createClient();
       const { data } = await supabase
         .from("personas")
-        .select("name, relation, status")
+        .select("name, relation, status, avatar_url")
         .eq("id", personaId)
         .single();
 
       if (data) {
         setName(data.name);
         setRelation(data.relation);
+        setAvatarUrl(data.avatar_url || null);
         setOrigName(data.name);
         setOrigRelation(data.relation);
+        setOrigAvatarUrl(data.avatar_url || null);
       }
       setLoading(false);
       setMounted(true);
@@ -40,13 +46,46 @@ export default function PersonaManagePage() {
     if (personaId) load();
   }, [personaId]);
 
-  const isDirty = name !== origName || relation !== origRelation;
+  const isDirty = name !== origName || relation !== origRelation || avatarUrl !== origAvatarUrl;
+
+  const handleAvatarUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (!file.type.startsWith("image/")) {
+      alert("Please select an image file.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      alert("Image must be under 5MB.");
+      return;
+    }
+
+    setUploading(true);
+    const supabase = createClient();
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${personaId}/${Date.now()}.${ext}`;
+
+    const { error } = await supabase.storage
+      .from("persona-avatars")
+      .upload(path, file, { upsert: true, contentType: file.type });
+
+    if (error) {
+      alert(`Upload failed: ${error.message}`);
+      setUploading(false);
+      return;
+    }
+
+    const { data: urlData } = supabase.storage.from("persona-avatars").getPublicUrl(path);
+    setAvatarUrl(urlData.publicUrl);
+    setUploading(false);
+  };
 
   const handleSave = async () => {
     const supabase = createClient();
     await supabase
       .from("personas")
-      .update({ name, relation })
+      .update({ name, relation, avatar_url: avatarUrl })
       .eq("id", personaId);
 
     router.back();
@@ -60,6 +99,7 @@ export default function PersonaManagePage() {
   const handleDiscard = () => {
     setName(origName);
     setRelation(origRelation);
+    setAvatarUrl(origAvatarUrl);
     setShowUnsaved(false);
     router.back();
   };
@@ -90,6 +130,40 @@ export default function PersonaManagePage() {
       </header>
 
       <main className="flex-1 w-full max-w-2xl mx-auto p-6 flex flex-col gap-6 pb-32 animate-fade-in-up">
+        {/* Avatar */}
+        <section className="bg-surface rounded-3xl p-6 shadow-sm border border-subtle/60">
+          <div className="flex flex-col items-center gap-4">
+            <label className="text-xs font-bold uppercase tracking-widest text-secondary self-start">
+              Avatar
+            </label>
+            <div
+              onClick={() => fileInputRef.current?.click()}
+              className="w-24 h-24 rounded-full overflow-hidden border-2 border-subtle/60 shadow-sm cursor-pointer hover:border-rose/50 transition-all duration-300 flex items-center justify-center bg-muted relative group"
+            >
+              {avatarUrl ? (
+                <img src={avatarUrl} alt="Persona avatar" className="w-full h-full object-cover" />
+              ) : (
+                <span className="font-serif text-3xl text-primary/50">{name.charAt(0)}</span>
+              )}
+              <div className="absolute inset-0 bg-black/30 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+                <span className="material-symbols-outlined text-white text-2xl">
+                  {uploading ? "hourglass_top" : "photo_camera"}
+                </span>
+              </div>
+            </div>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp,image/gif"
+              className="hidden"
+              onChange={handleAvatarUpload}
+            />
+            <p className="text-xs text-secondary">
+              {uploading ? "Uploading..." : "Tap to upload a photo"}
+            </p>
+          </div>
+        </section>
+
         {/* Name */}
         <section className="bg-surface rounded-3xl p-6 shadow-sm border border-subtle/60">
           <div className="flex flex-col gap-2">
@@ -145,7 +219,8 @@ export default function PersonaManagePage() {
         {/* Save */}
         <button
           onClick={handleSave}
-          className="w-full py-3.5 rounded-full font-bold transition-all bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 btn-press"
+          disabled={uploading}
+          className="w-full py-3.5 rounded-full font-bold transition-all bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 disabled:opacity-50 btn-press"
         >
           Save Changes
         </button>
