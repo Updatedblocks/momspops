@@ -29,7 +29,7 @@ export default function GlobalProviders({
     return (
       <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
         <MaterialIconsLoader />
-        <div className="relative z-10 max-w-md mx-auto min-h-[100dvh] bg-base shadow-2xl sm:border-x sm:border-subtle/50 overflow-x-hidden flex flex-col pb-32">
+        <div className="relative z-10 max-w-md mx-auto h-[100dvh] bg-base shadow-2xl sm:border-x sm:border-subtle/50 overflow-hidden flex flex-col">
           {children}
         </div>
       </ThemeProvider>
@@ -39,7 +39,7 @@ export default function GlobalProviders({
   return (
     <ThemeProvider attribute="class" defaultTheme="system" enableSystem>
       <MaterialIconsLoader />
-      <div className="relative z-10 max-w-md mx-auto min-h-[100dvh] bg-base shadow-2xl sm:border-x sm:border-subtle/50 overflow-x-hidden flex flex-col pb-32">
+      <div className="relative z-10 max-w-md mx-auto h-[100dvh] bg-base shadow-2xl sm:border-x sm:border-subtle/50 overflow-hidden flex flex-col">
         {children}
       </div>
     </ThemeProvider>

@@ -174,7 +174,7 @@ export default function ChatPage() {
   const displayName = personaName || "Loved One";
 
   return (
-    <div className="flex-1 flex flex-col">
+    <div className="flex-1 flex flex-col min-h-0">
       {/* Top bar */}
       <header className="bg-surface sticky top-0 z-40 shadow-sm shadow-black/5 border-b border-subtle/60">
         <div className="relative flex items-center justify-center w-full px-6 py-4">
