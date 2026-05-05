@@ -1,0 +1,63 @@
+═══════════════════════════════════════════════════════════════
+40-POINT SOUL PROFILE — FIELD REFERENCE FOR QUESTION MAPPING
+═══════════════════════════════════════════════════════════════
+
+SECTION 1: SYNTACTIC ARCHITECTURE (How they structure language)
+───────────────────────────────────────────────────────────────
+1.  average_sentence_length        number                (e.g., 12.5)
+2.  punctuation_density_index      number  0.0–1.0
+3.  typographical_error_rate       number  0.0–1.0
+4.  capitalization_compliance      number  0.0–1.0
+5.  ellipsis_dependency            number  0.0–1.0
+6.  emoji_to_text_ratio            number  0.0–1.0
+7.  question_to_statement_ratio    number
+8.  monologue_endurance_wpm        number                (words per minute when talking)
+
+SECTION 2: LEXICAL FINGERPRINT (Their unique vocabulary)
+───────────────────────────────────────────────────────────────
+9.  lexical_diversity_score        number  0.0–1.0
+10. primary_idioms                 array   (max 10)      ["you betcha", "goodness gracious"]
+11. filler_word_matrix             object  { word: frequency }  {"um": 0.8, "like": 0.5}
+12. profanity_index                number  0.0–1.0
+13. greeting_taxonomy              array                 ["Hey there", "Good morning sunshine"]
+14. sign_off_taxonomy              array                 ["Love always", "Talk soon"]
+15. formality_variance             number  0.0–1.0       (0=casual always, 1=code-switches)
+
+SECTION 3: EMOTIONAL TOPOGRAPHY (How they feel & express)
+───────────────────────────────────────────────────────────────
+16. emotional_baseline_valence     number  -1.0–1.0      (-1=pessimistic, +1=optimistic)
+17. emotional_volatility_index     number  0.0–1.0       (0=steady, 1=unpredictable)
+18. humor_mechanisms               array   enum: sarcasm | self_deprecation | puns |
+                                                  observational | absurdist | cynical | slapstick
+19. nostalgia_triggers             array                 ["family photos", "old songs"]
+20. anxiety_markers                array                 ["What if...", "I worry about..."]
+21. vulnerability_threshold        number  0.0–1.0       (0=guarded, 1=open book)
+22. future_orientation_index       number  0.0–1.0       (0=lives in past, 1=future-focused)
+23. detail_granularity             number  0.0–1.0       (0=big picture, 1=obsesses over details)
+
+SECTION 4: RELATIONAL DYNAMICS (How they interact with others)
+───────────────────────────────────────────────────────────────
+24. conflict_resolution_style      string  enum: avoidant | confrontational | appeasing |
+                                                analytical | humorous_deflection
+25. initiation_vs_response_ratio   number  0.0–1.0       (0=always responds, 1=always initiates)
+26. affirmation_delivery_style     string                ("praise", "quiet pride", "acts of service")
+27. disagreement_framing           string                ("gentle correction", "direct contradiction")
+28. affection_delivery_mechanism   string  enum: words_of_affirmation | teasing/banter |
+                                                practical_advice | gifts/media_sharing |
+                                                unprompted_check_ins
+29. advice_giving_tendency         number  0.0–1.0       (0=never gives advice, 1=always)
+30. anecdote_reliance              number  0.0–1.0       (0=facts only, 1=everything is a story)
+31. empathy_quotient               number  0.0–1.0       (0=cold, 1=hyper-empathetic)
+32. topic_fixations                array                 ["gardening", "grandkids", "politics"]
+33. passive_aggressive_markers     array                 ["fine.", "whatever you think"]
+34. simulated_response_latency     number                (milliseconds, how long they pause)
+
+═══════════════════════════════════════════════════════════════
+SLIDER METRICS SUGGESTIONS (5 fields that map well to 0-100 sliders)
+═══════════════════════════════════════════════════════════════
+
+A. "How emotional were they?"       → emotional_baseline_valence  (-100 to +100 slider)
+B. "How much did they talk?"        → initiation_vs_response_ratio  (0-100 slider)
+C. "How warm/affectionate?"         → empathy_quotient              (0-100 slider)
+D. "How playful/humorous?"          → humor_mechanisms array length + profanity_index inverted
+E. "How formal/proper?"             → formality_variance            (0-100 slider)

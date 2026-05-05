@@ -1,0 +1,158 @@
+═══════════════════════════════════════════════════════════════
+50-QUESTION INTERVIEW BANK — SOUL CALIBRATION
+═══════════════════════════════════════════════════════════════
+Usage: React randomly selects 5. Each question maps to specific 
+soul_profile fields. Categorized by target schema section.
+═══════════════════════════════════════════════════════════════
+
+GROUP 1: LEXICON & SYNTAX
+Targets: greeting_taxonomy, sign_off_taxonomy, primary_idioms,
+         profanity_index, emoji_to_text_ratio
+───────────────────────────────────────────────────────────────
+Q1  | When they pick up the phone or text you first thing in the 
+    | morning, what are their exact words?
+Q2  | How do they usually say goodbye or sign off at the end of 
+    | a long conversation?
+Q3  | What is a catchphrase, idiom, or weird slang word they use 
+    | constantly?
+Q4  | If they stub their toe or drop their phone, what exact curse 
+    | words (or substitute words) fly out of their mouth?
+Q5  | Do they use emojis, or are they strictly a "text-only, proper 
+    | punctuation" kind of person? Which emojis do they abuse?
+Q6  | When they are absolutely shocked or surprised by news, what 
+    | is their go-to reaction phrase?
+Q7  | How do they refer to you? Do they use your real name, a 
+    | specific nickname, or an insult-as-a-term-of-endearment?
+Q8  | If they are running 10 minutes late, what text do they send 
+    | you?
+Q9  | When they agree with you, do they say "Yes," "Absolutely," 
+    | "For sure," or something else?
+Q10 | What is a movie quote, TV line, or song lyric they quote way 
+    | too often?
+
+GROUP 2: HUMOR & JOY
+Targets: humor_mechanisms, emotional_baseline_valence
+───────────────────────────────────────────────────────────────
+Q11 | When they make a joke, are they usually making fun of 
+    | themselves, making fun of you, or pointing out something 
+    | absurd in the room?
+Q12 | What is the fastest way to make them laugh until they can't 
+    | breathe?
+Q13 | Describe their "Dad joke" or "Mom joke" style. Do they love 
+    | terrible puns?
+Q14 | If someone trips and falls (but isn't hurt), do they gasp and 
+    | help, or laugh hysterically?
+Q15 | How do they react to heavy sarcasm? Do they dish it back, or 
+    | do they take it literally?
+Q16 | If they try to pull a prank or be mischievous, what is their 
+    | usual tactic?
+Q17 | What is a topic they find inexplicably hilarious that no one 
+    | else really gets?
+Q18 | When they are in an incredibly good mood, how does their 
+    | behavior change?
+Q19 | Do they ever use self-deprecation to defuse a tense 
+    | situation? Give an example.
+Q20 | How do they tease the people they love the most?
+
+GROUP 3: FRICTION & STRESS
+Targets: conflict_resolution_style, passive_aggressive_markers,
+         anxiety_markers, emotional_volatility_index,
+         disagreement_framing
+───────────────────────────────────────────────────────────────
+Q21 | If you cancel plans on them at the last minute, exactly what 
+    | text message do they send back?
+Q22 | When they are secretly mad at you, how do you know? (What is 
+    | their passive-aggressive tell?)
+Q23 | In a heated argument, do they yell and explode, or go ice-
+    | cold and silent?
+Q24 | If they are stressed about money or work, what is the phrase 
+    | they repeat to themselves (or you)?
+Q25 | How do they tell you that you are doing something wrong or 
+    | making a mistake?
+Q26 | When they know they are wrong, how do they apologize? (Or do 
+    | they just act like nothing happened?)
+Q27 | What is a minor, petty inconvenience that completely ruins 
+    | their day?
+Q28 | If you give them a compliment they don't know how to handle, 
+    | how do they deflect it?
+Q29 | When they are worried about your safety or health, how does 
+    | it manifest? (Nagging, hovering, silence?)
+Q30 | How quickly do they forgive and forget after a fight?
+
+GROUP 4: AFFECTION & EMPATHY
+Targets: empathy_quotient, affection_delivery_mechanism,
+         affirmation_delivery_style, advice_giving_tendency
+───────────────────────────────────────────────────────────────
+Q31 | When you are going through a terrible breakup or job loss, 
+    | what is their exact method of comforting you?
+Q32 | Do they say "I love you" out loud, or do they show it by 
+    | fixing your car / cooking you food?
+Q33 | When you tell them a crazy story about your day, how do they 
+    | actively listen? (e.g., "No way!", "Uh huh", giving instant 
+    | advice)
+Q34 | If you have a problem, do they immediately try to solve it 
+    | with advice, or just listen to you vent?
+Q35 | How do they express pride in your accomplishments without 
+    | sounding cheesy?
+Q36 | What is the most thoughtful, specific gift they have ever 
+    | given you or someone else?
+Q37 | Do they randomly check in on you? What does that text 
+    | usually look like?
+Q38 | How do they act around strangers or service workers compared 
+    | to how they act around you?
+Q39 | If someone else is crying in the room, what is their 
+    | immediate physical reaction?
+Q40 | What is a piece of life advice they have given you more than 
+    | three times?
+
+GROUP 5: QUIRKS & FIXATIONS
+Targets: topic_fixations, nostalgia_triggers,
+         future_orientation_index, detail_granularity
+───────────────────────────────────────────────────────────────
+Q41 | If you are sitting in silence, what random topic will they 
+    | inevitably bring up?
+Q42 | What specific object, song, or smell instantly launches them 
+    | into a story about their past?
+Q43 | Are they the kind of person who plans a vacation itinerary 
+    | down to the minute, or do they just "wing it"?
+Q44 | When they tell a story, do they get bogged down in useless 
+    | details (like what color a car was), or rush to the 
+    | punchline?
+Q45 | What is a conspiracy theory, political opinion, or wild 
+    | belief they will debate anyone on?
+Q46 | Do they talk more about "the good old days" or what they plan 
+    | to do five years from now?
+Q47 | What is their absolute favorite hobby or obsession that they 
+    | will talk your ear off about if you let them?
+Q48 | If they had $1,000 to waste right now, what highly specific 
+    | thing would they buy?
+Q49 | What is a routine or habit they refuse to break, no matter 
+    | what?
+Q50 | If you had to summarize their entire worldview in one 
+    | sentence, what would it be?
+
+═══════════════════════════════════════════════════════════════
+FIELD COVERAGE MAP (which questions fill which soul fields)
+═══════════════════════════════════════════════════════════════
+
+greeting_taxonomy          → Q1, Q7
+sign_off_taxonomy          → Q2
+primary_idioms             → Q3, Q6, Q9, Q10
+profanity_index            → Q4
+emoji_to_text_ratio        → Q5
+humor_mechanisms           → Q11, Q13, Q15, Q16, Q19, Q20
+emotional_baseline_valence → Q14, Q17, Q18
+conflict_resolution_style  → Q23, Q26, Q30
+passive_aggressive_markers → Q21, Q22, Q28
+anxiety_markers            → Q24, Q27, Q29
+emotional_volatility_index → Q23, Q26, Q30
+disagreement_framing       → Q25, Q26
+empathy_quotient           → Q14, Q31, Q38, Q39
+affection_delivery_mechanism → Q32, Q35, Q36
+affirmation_delivery_style → Q33, Q35, Q37
+advice_giving_tendency     → Q34, Q40
+topic_fixations            → Q41, Q45, Q47
+nostalgia_triggers         → Q42, Q46
+future_orientation_index   → Q43, Q46
+detail_granularity         → Q44, Q48
+anecdote_reliance          → Q44, Q49

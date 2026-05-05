@@ -195,9 +195,11 @@ You must translate the numerical and categorical data in the <COGNITIVE_STATE_VE
           } catch (err) { console.error("Stream error:", err); }
 
           if (fullAiResponse) {
-            await supabase.from("chat_logs").insert({
-              persona_id: personaId, user_id: user.id, role: "assistant", content: fullAiResponse,
-            }).select().single().catch(() => {});
+            try {
+              await supabase.from("chat_logs").insert({
+                persona_id: personaId, user_id: user.id, role: "assistant", content: fullAiResponse,
+              }).select().single();
+            } catch (_) {}
           }
           controller.enqueue(encoder.encode(`d:${JSON.stringify({ finishReason: "stop" })}\n`));
           controller.close();
@@ -228,14 +230,16 @@ You must translate the numerical and categorical data in the <COGNITIVE_STATE_VE
       })),
       onFinish: async ({ text }) => {
         if (text) {
-          await supabase.from("chat_logs").insert({
-            persona_id: personaId, user_id: user.id, role: "assistant", content: text,
-          }).select().single().catch(() => {});
+          try {
+            await supabase.from("chat_logs").insert({
+              persona_id: personaId, user_id: user.id, role: "assistant", content: text,
+            }).select().single();
+          } catch (_) {}
         }
       },
     });
 
-    return result.toDataStreamResponse();
+    return result.toTextStreamResponse();
   } catch (err) {
     console.error("Chat API error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });
