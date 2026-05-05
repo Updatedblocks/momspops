@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import { useRouter } from "next/navigation";
 import { createClient } from "@/utils/supabase/client";
+import { useSettingsStore } from "@/store/useSettingsStore";
 
 declare global {
   interface Window {
@@ -159,6 +161,29 @@ export default function WelcomePage() {
 
   const handleSubmit = mode === "signin" ? handleManualSignIn : handleManualSignUp;
 
+  // ── Dev Guest Sign-In ──────────────────────────────────
+  const router = useRouter();
+  const handleGuestSignIn = () => {
+    // Set guest cookie for middleware bypass
+    document.cookie = "guest_mode=true; path=/; max-age=86400; SameSite=Lax";
+    const guestId = "2a28257b-4e45-4923-bb71-f279744355c3";
+    useSettingsStore.getState().setUser({
+      id: guestId,
+      email: "xilliem.inc@gmail.com",
+      isAuthenticated: true,
+    });
+    useSettingsStore.getState().setProfile({
+      fullName: "Wakanda Memes",
+      displayName: "Wakanda",
+      email: "xilliem.inc@gmail.com",
+      avatarUrl: "https://lh3.googleusercontent.com/a/ACg8ocL9doN5NgxOw4afJ4BwM9LlfrAuyR5HUYf1ZwHlSyMYXIlBWsM=s96-c",
+      bio: "",
+      echo_balance: 13,
+      tier: "echoes",
+    });
+    router.push("/library");
+  };
+
   return (
     <div className="flex-1 flex flex-col items-center justify-center px-6 py-10 relative min-h-[100dvh]">
       {/* Hero branding */}
@@ -194,6 +219,15 @@ export default function WelcomePage() {
             />
           </svg>
           <span>{loading === "google" ? "Redirecting..." : "Continue with Google"}</span>
+        </button>
+
+        {/* Dev: Guest Access */}
+        <button
+          onClick={handleGuestSignIn}
+          className="w-full py-3.5 rounded-2xl font-medium flex items-center justify-center gap-3 bg-amber-50 text-amber-700 border border-amber-200 shadow-sm btn-press dark:bg-amber-950 dark:text-amber-300 dark:border-amber-800"
+        >
+          <span className="material-symbols-outlined text-xl">person</span>
+          <span>Try as Guest (Dev)</span>
         </button>
 
         {!emailMode ? (

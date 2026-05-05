@@ -1,370 +1,458 @@
 "use client";
 
-import { useState, useRef, useCallback } from "react";
-import Link from "next/link";
+import { useReducer, useState, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 import BottomNav from "@/components/BottomNav";
+import { SlidersStep } from "@/components/SlidersStep";
+import { DensityMeter } from "@/components/DensityMeter";
 import { useSettingsStore } from "@/store/useSettingsStore";
-import { createClient } from "@/utils/supabase/client";
+import {
+  distillationReducer,
+  getInitialState,
+  calcDensity,
+  STEP_ORDER,
+  STEP_LABELS,
+  DEFAULT_SLIDERS,
+  type DistillationState,
+} from "@/lib/distillationState";
+import { INTERVIEW_QUESTIONS } from "@/lib/interviewQuestions";
+import { stageAndDistill } from "@/lib/stageAndDistill";
 
-interface SelectedFile {
-  id: string;
-  file: File;
-  preview?: string;
+// ── Shuffle & pick 5 questions ──
+function pickQuestions() {
+  const shuffled = [...INTERVIEW_QUESTIONS].sort(() => Math.random() - 0.5);
+  return shuffled.slice(0, 5);
 }
 
-function formatSize(bytes: number): string {
-  if (bytes < 1024) return `${bytes} B`;
-  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
-  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
-}
-
-function fileIcon(type: string): string {
-  if (type.startsWith("image/")) return "image";
-  if (type.startsWith("audio/") || type.startsWith("video/")) return "mic";
-  if (type.includes("pdf")) return "picture_as_pdf";
-  return "description";
-}
+// ── Icons per step ──
+const STEP_ICONS: Record<string, string> = {
+  identity: "person",
+  interview: "psychology",
+  sliders: "tune",
+  voice: "mic",
+  archives: "folder_open",
+  review: "auto_awesome",
+};
 
 export default function DistillPage() {
   const router = useRouter();
-  const avatarUrl = useSettingsStore((s) => s.profile.avatarUrl);
   const userId = useSettingsStore((s) => s.user.id);
-  const [files, setFiles] = useState<SelectedFile[]>([]);
-  const [isDragging, setIsDragging] = useState(false);
-  const [isDistilling, setIsDistilling] = useState(false);
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const dragCounter = useRef(0);
+  const avatarUrl = useSettingsStore((s) => s.profile.avatarUrl);
+  const [state, dispatch] = useReducer(distillationReducer, undefined, getInitialState);
+  const [questions] = useState(pickQuestions);
+  const [answers, setAnswers] = useState<Record<number, string>>({});
+  const [archiveFiles, setArchiveFiles] = useState<File[]>([]);
+  const [voiceBlob, setVoiceBlob] = useState<Blob | null>(null);
+  const [voiceUrl, setVoiceUrl] = useState<string | null>(null);
+  const [isRecording, setIsRecording] = useState(false);
+  const [distilling, setDistilling] = useState(false);
+  const [distillProgress, setDistillProgress] = useState(0);
+  const [distillError, setDistillError] = useState("");
+  const mediaRecorderRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
 
-  const processFiles = useCallback((fileList: FileList) => {
-    const newFiles: SelectedFile[] = Array.from(fileList).map((file) => ({
-      id: `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`,
-      file,
-      preview: file.type.startsWith("image/")
-        ? URL.createObjectURL(file)
-        : undefined,
-    }));
-    setFiles((prev) => [...prev, ...newFiles]);
-  }, []);
+  const currentIdx = STEP_ORDER.indexOf(state.step);
+  const isFirst = currentIdx === 0;
+  const isLast = currentIdx === STEP_ORDER.length - 1;
+  const density = calcDensity(state, !!voiceBlob, archiveFiles.length > 0);
 
-  const removeFile = useCallback((id: string) => {
-    setFiles((prev) => {
-      const file = prev.find((f) => f.id === id);
-      if (file?.preview) URL.revokeObjectURL(file.preview);
-      return prev.filter((f) => f.id !== id);
-    });
-  }, []);
-
-  const handleDragEnter = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter.current++;
-    if (e.dataTransfer.items?.length) setIsDragging(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    dragCounter.current--;
-    if (dragCounter.current === 0) setIsDragging(false);
-  };
-
-  const handleDragOver = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-  };
-
-  const handleDrop = (e: React.DragEvent) => {
-    e.preventDefault();
-    e.stopPropagation();
-    setIsDragging(false);
-    dragCounter.current = 0;
-    if (e.dataTransfer.files?.length) processFiles(e.dataTransfer.files);
-  };
-
-  const handleFileSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.files?.length) processFiles(e.target.files);
-    e.target.value = "";
-  };
-
-  const handleDistill = async () => {
-    if (files.length === 0 || isDistilling || !userId) return;
-    setIsDistilling(true);
-
+  // ── Voice recording ──
+  const startRecording = async () => {
     try {
-      const supabase = createClient();
-      const batchId = `${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
-      const storagePath = `${userId}/${batchId}`;
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const recorder = new MediaRecorder(stream, { mimeType: "audio/webm" });
+      chunksRef.current = [];
+      recorder.ondataavailable = (e) => chunksRef.current.push(e.data);
+      recorder.onstop = () => {
+        const blob = new Blob(chunksRef.current, { type: "audio/webm" });
+        setVoiceBlob(blob);
+        setVoiceUrl(URL.createObjectURL(blob));
+        stream.getTracks().forEach((t) => t.stop());
+      };
+      mediaRecorderRef.current = recorder;
+      recorder.start();
+      setIsRecording(true);
+    } catch {
+      setDistillError("Microphone access denied. Please allow mic permissions.");
+    }
+  };
 
-      // ── Upload all files to Supabase Storage ──────────────
-      for (const f of files) {
-        const { error: uploadError } = await supabase.storage
-          .from("memories")
-          .upload(`${storagePath}/${f.file.name}`, f.file, {
-            cacheControl: "3600",
-            upsert: false,
-          });
+  const stopRecording = () => {
+    mediaRecorderRef.current?.stop();
+    setIsRecording(false);
+  };
 
-        if (uploadError) {
-          console.error(`Failed to upload ${f.file.name}:`, uploadError.message);
-          alert(`Upload failed: ${uploadError.message}`);
-          setIsDistilling(false);
-          return;
-        }
-      }
+  // ── Navigation ──
+  const goNext = () => {
+    const next = STEP_ORDER[currentIdx + 1];
+    if (next) dispatch({ type: "SET_STEP", step: next });
+  };
+  const goPrev = () => {
+    const prev = STEP_ORDER[currentIdx - 1];
+    if (prev) dispatch({ type: "SET_STEP", step: prev });
+  };
 
-      // ── Create Stub Persona (appears instantly in Library) ──
-      const { data: stubPersona, error: stubError } = await supabase
-        .from("personas")
-        .insert({
-          user_id: userId,
-          name: "New Soul",
-          relation: "Being distilled...",
-          status: "distilling",
-        })
-        .select("id")
-        .single();
+  const canProceed = useMemo(() => {
+    switch (state.step) {
+      case "identity": return state.identity.name.trim() && state.identity.relation.trim();
+      case "interview": return Object.keys(answers).length >= 5;
+      case "sliders": return true;
+      case "voice": return true;
+      case "archives": return true;
+      case "review": return density >= 10;
+      default: return false;
+    }
+  }, [state.step, state.identity, answers, density]);
 
-      if (stubError || !stubPersona) {
-        alert(`Failed to create distillation stub: ${stubError?.message}`);
-        setIsDistilling(false);
-        return;
-      }
+  // ── Submit ──
+  const handleDistill = async () => {
+    if (!userId) return;
+    setDistilling(true);
+    setDistillError("");
 
-      // ── Invoke Edge Function for distillation ────────────
-      const { data, error: fnError } = await supabase.functions.invoke(
-        "distill-soul",
-        {
-          body: {
-            userId,
-            batchId,
-            personaId: stubPersona.id,
-            personaName: "Distilled Soul",
-            personaRelation: "Loved One",
-          },
-        },
-      );
+    const qaAnswers = questions
+      .filter((q) => answers[q.id]?.trim())
+      .map((q) => ({ question: q.text, questionId: q.id, answer: answers[q.id] }));
 
-      if (fnError || !data?.success) {
-        console.error("Distillation failed:", fnError || data);
-        alert(
-          `Distillation failed: ${fnError?.message || data?.error || "Unknown error"
-          }`,
-        );
-        setIsDistilling(false);
-        return;
-      }
+    dispatch({ type: "CLEAR_QA" });
+    qaAnswers.forEach((qa) => dispatch({ type: "ADD_QA", payload: qa }));
 
-      // ── Redirect to Soul Library ─────────────────────────
+    const result = await stageAndDistill({
+      userId,
+      identity: state.identity,
+      qaAnswers,
+      sliderMetrics: state.slider_metrics,
+      voiceBlob,
+      archiveFiles,
+      onProgress: setDistillProgress,
+    });
+
+    setDistilling(false);
+    if (result.success) {
       router.push("/library");
-    } catch (err) {
-      console.error("Distillation error:", err);
-      alert(`Something went wrong: ${(err as Error).message}`);
-      setIsDistilling(false);
+    } else {
+      setDistillError(result.error || "Distillation failed. Please try again.");
+    }
+  };
+
+  // ── Render step content ──
+  const renderStep = () => {
+    switch (state.step) {
+      // ── IDENTITY ──────────────────────────────
+      case "identity":
+        return (
+          <div className="space-y-6">
+            <p className="text-secondary text-sm leading-relaxed">
+              Every preserved voice begins with a name. Tell us who this person is to you.
+            </p>
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-secondary mb-2 block">
+                  Their Name
+                </label>
+                <input
+                  type="text"
+                  value={state.identity.name}
+                  onChange={(e) => dispatch({ type: "SET_IDENTITY", payload: { ...state.identity, name: e.target.value } })}
+                  placeholder="e.g. Grandma Rose"
+                  className="w-full py-3.5 px-5 rounded-2xl bg-surface text-primary border border-subtle shadow-sm placeholder:text-secondary/50 outline-none focus:border-rose/50 transition-colors"
+                />
+              </div>
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-secondary mb-2 block">
+                  Your Relationship
+                </label>
+                <input
+                  type="text"
+                  value={state.identity.relation}
+                  onChange={(e) => dispatch({ type: "SET_IDENTITY", payload: { ...state.identity, relation: e.target.value } })}
+                  placeholder="e.g. Grandmother, Mentor, Old Friend"
+                  className="w-full py-3.5 px-5 rounded-2xl bg-surface text-primary border border-subtle shadow-sm placeholder:text-secondary/50 outline-none focus:border-rose/50 transition-colors"
+                />
+              </div>
+            </div>
+          </div>
+        );
+
+      // ── INTERVIEW ──────────────────────────────
+      case "interview":
+        return (
+          <div className="space-y-8">
+            <p className="text-secondary text-sm leading-relaxed">
+              Answer these 5 questions and we will understand the shape of their soul.
+            </p>
+            {questions.map((q, i) => (
+              <div key={q.id} className="space-y-3">
+                <label className="block font-serif text-primary text-base leading-relaxed">
+                  <span className="text-rose/60 text-xs font-sans font-bold uppercase tracking-widest mr-2">
+                    {i + 1}.
+                  </span>
+                  {q.text}
+                </label>
+                <textarea
+                  value={answers[q.id] || ""}
+                  onChange={(e) => setAnswers((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                  placeholder="Type your answer here..."
+                  rows={3}
+                  className="w-full py-3 px-5 rounded-2xl bg-surface text-primary border border-subtle shadow-sm placeholder:text-secondary/50 outline-none focus:border-rose/50 transition-colors resize-none"
+                />
+              </div>
+            ))}
+          </div>
+        );
+
+      // ── SLIDERS ──────────────────────────────
+      case "sliders":
+        return (
+          <div className="space-y-6">
+            <p className="text-secondary text-sm leading-relaxed">
+              Dial in their personality. These sliders calibrate how their AI persona will think and speak.
+            </p>
+            <SlidersStep
+              metrics={state.slider_metrics}
+              onChange={(metrics) => dispatch({ type: "SET_SLIDERS", payload: metrics })}
+            />
+          </div>
+        );
+
+      // ── VOICE ──────────────────────────────────
+      case "voice":
+        return (
+          <div className="space-y-6">
+            <p className="text-secondary text-sm leading-relaxed">
+              Share a voice memory — something only they would say, or a story in their own words.
+            </p>
+            <div className="bg-surface rounded-3xl border-2 border-dashed border-subtle p-8 flex flex-col items-center gap-4">
+              {voiceUrl ? (
+                <div className="w-full space-y-4">
+                  <audio src={voiceUrl} controls className="w-full" />
+                  <button
+                    onClick={() => { setVoiceUrl(null); setVoiceBlob(null); }}
+                    className="text-rose text-sm underline underline-offset-4"
+                  >
+                    Remove recording
+                  </button>
+                </div>
+              ) : isRecording ? (
+                <div className="flex flex-col items-center gap-4">
+                  <div className="w-16 h-16 rounded-full bg-rose animate-pulse flex items-center justify-center">
+                    <span className="material-symbols-outlined text-3xl text-white">mic</span>
+                  </div>
+                  <p className="text-rose font-medium animate-pulse">Recording...</p>
+                  <button
+                    onClick={stopRecording}
+                    className="px-6 py-3 rounded-full bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 font-bold shadow-sm btn-press"
+                  >
+                    Stop Recording
+                  </button>
+                </div>
+              ) : (
+                <>
+                  <div className="w-16 h-16 rounded-full bg-rose/10 flex items-center justify-center text-rose">
+                    <span className="material-symbols-outlined text-3xl">mic</span>
+                  </div>
+                  <p className="text-secondary text-sm text-center">
+                    Record a voice note, or skip and come back later.
+                  </p>
+                  <button
+                    onClick={startRecording}
+                    className="px-6 py-3 rounded-full bg-rose text-white font-bold shadow-sm btn-press"
+                  >
+                    Start Recording
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        );
+
+      // ── ARCHIVES ──────────────────────────────
+      case "archives":
+        return (
+          <div className="space-y-6">
+            <p className="text-secondary text-sm leading-relaxed">
+              Upload letters, photos, or voice notes. We will thoughtfully distill them to capture the essence of their voice.
+            </p>
+            <div
+              className="bg-surface rounded-3xl border-2 border-dashed border-subtle p-8 flex flex-col items-center gap-3 cursor-pointer hover:border-rose/40 transition-colors"
+              onClick={() => document.getElementById("archive-input")?.click()}
+              onDragOver={(e) => e.preventDefault()}
+              onDrop={(e) => {
+                e.preventDefault();
+                const files = Array.from(e.dataTransfer.files);
+                setArchiveFiles((prev) => [...prev, ...files]);
+              }}
+            >
+              <span className="material-symbols-outlined text-4xl text-rose/60">cloud_upload</span>
+              <p className="text-primary font-medium">Drop files here or click to browse</p>
+              <p className="text-secondary text-xs">Images, PDFs, text files — anything that holds their voice</p>
+              <input
+                id="archive-input"
+                type="file"
+                multiple
+                className="hidden"
+                onChange={(e) => {
+                  if (e.target.files) setArchiveFiles((prev) => [...prev, ...Array.from(e.target.files!)]);
+                }}
+              />
+            </div>
+            {archiveFiles.length > 0 && (
+              <div className="space-y-2">
+                {archiveFiles.map((f, i) => (
+                  <div key={i} className="flex items-center gap-3 bg-surface rounded-2xl p-3 border border-subtle/60">
+                    <span className="material-symbols-outlined text-secondary">description</span>
+                    <span className="flex-1 text-sm text-primary truncate">{f.name}</span>
+                    <button
+                      onClick={() => setArchiveFiles((prev) => prev.filter((_, j) => j !== i))}
+                      className="text-rose/60 hover:text-rose"
+                    >
+                      <span className="material-symbols-outlined text-lg">close</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+
+      // ── REVIEW ──────────────────────────────
+      case "review":
+        return (
+          <div className="space-y-8">
+            <div className="flex flex-col items-center gap-4 py-4">
+              <DensityMeter density={density} state={state} hasVoice={!!voiceBlob} hasArchives={archiveFiles.length > 0} />
+              <p className="text-secondary text-sm text-center">
+                {density < 30
+                  ? "Add more detail — memories, stories, and slider tuning raise the density."
+                  : density < 60
+                  ? "Good foundation. More voice or archives will deepen the soul."
+                  : density < 90
+                  ? "Nearly there. A rich soul is forming."
+                  : "Incredible depth. Ready to distill."}
+              </p>
+            </div>
+
+            {/* Summary */}
+            <div className="bg-surface rounded-2xl border border-subtle/60 p-5 space-y-3">
+              <h3 className="font-serif text-lg text-primary">Soul Summary</h3>
+              <div className="text-sm text-secondary space-y-1">
+                <p><strong className="text-primary">Name:</strong> {state.identity.name || "—"}</p>
+                <p><strong className="text-primary">Relation:</strong> {state.identity.relation || "—"}</p>
+                <p><strong className="text-primary">Interview:</strong> {Object.keys(answers).filter((k) => answers[+k]?.trim()).length}/5 answered</p>
+                <p><strong className="text-primary">Sliders:</strong> {state.slider_metrics.outlook !== 50 || state.slider_metrics.affection !== 50 || state.slider_metrics.formality !== 50 ? "Customized" : "Default (balanced)"}</p>
+                <p><strong className="text-primary">Voice:</strong> {voiceBlob ? "Recorded ✓" : "None"}</p>
+                <p><strong className="text-primary">Archives:</strong> {archiveFiles.length > 0 ? `${archiveFiles.length} file(s)` : "None"}</p>
+              </div>
+            </div>
+
+            {distillError && (
+              <div className="bg-rose/10 border border-rose/20 rounded-2xl p-4 text-rose text-sm">
+                {distillError}
+              </div>
+            )}
+
+            <button
+              onClick={handleDistill}
+              disabled={distilling || !canProceed}
+              className="w-full py-4 rounded-2xl font-bold bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 shadow-lg disabled:opacity-30 disabled:cursor-not-allowed btn-press"
+            >
+              {distilling ? `Distilling... ${distillProgress}%` : "Begin Distillation"}
+            </button>
+          </div>
+        );
     }
   };
 
   return (
     <div className="flex-1 flex flex-col">
       {/* Top bar */}
-      <header className="bg-header/90 backdrop-blur-sm sticky top-0 z-50 shadow-sm shadow-black/5 w-full">
+      <header className="bg-surface border-b border-subtle/50 shadow-sm shadow-black/5 sticky top-0 z-40">
         <div className="relative flex items-center justify-center w-full px-6 py-4">
-          <h1 className="text-2xl font-serif font-bold text-primary tracking-tight not-italic">
-            The Heirloom
-          </h1>
           <Link
             href="/settings/profile"
-            className="absolute right-4 w-8 h-8 rounded-full overflow-hidden border border-subtle/40 btn-press"
+            className="absolute left-4 w-10 h-10 rounded-full overflow-hidden border border-subtle shadow-sm btn-press"
           >
             {avatarUrl ? (
-              <img
-                alt="User profile"
-                className="w-full h-full object-cover"
-                src={avatarUrl}
-                referrerPolicy="no-referrer"
-              />
+              <img alt="Profile" src={avatarUrl} className="w-full h-full object-cover" referrerPolicy="no-referrer" />
             ) : (
-              <span className="material-symbols-outlined w-full h-full flex items-center justify-center text-secondary text-base bg-surface">
+              <span className="material-symbols-outlined w-full h-full flex items-center justify-center text-secondary text-xl bg-surface">
                 person
               </span>
             )}
           </Link>
+          <h1 className="text-xl font-serif font-bold text-primary tracking-tight">The Heirloom</h1>
         </div>
       </header>
 
-      <main className="flex-grow w-full max-w-2xl mx-auto px-6 pt-8 pb-32 flex flex-col gap-8 animate-fade-in-up">
-        {/* Header */}
-        <div className="text-center">
-          <h1 className="text-3xl sm:text-4xl font-serif text-primary tracking-tight mb-3">
-            Share their words
-          </h1>
-          <p className="text-sm sm:text-base text-secondary leading-relaxed max-w-md mx-auto">
-            Gently upload letters, photos, or voice notes. We&apos;ll
-            thoughtfully distill them to capture the essence of their voice.
-          </p>
-        </div>
-
-        {/* Progress steps */}
-        <div className="relative flex flex-row justify-between w-full px-4">
-          <div className="absolute top-5 left-[15%] right-[15%] border-t-2 border-dotted border-subtle -z-10" />
-          {[
-            { n: "1", label: "Gather Memories", active: true },
-            { n: "2", label: "The Distillation", active: false },
-            { n: "3", label: "Reconnect", active: false },
-          ].map((step) => (
-            <div key={step.n} className="flex flex-col items-center flex-1 z-10">
-              <div
-                className={`w-8 h-8 rounded-full flex items-center justify-center shadow-sm ${
-                  step.active
-                    ? "bg-muted text-white"
-                    : "bg-surface text-secondary border border-subtle"
-                }`}
-              >
-                <span className="text-[10px] font-bold tracking-wider uppercase">
-                  {step.n}
+      <main className="flex-grow w-full max-w-2xl mx-auto px-6 py-6 flex flex-col gap-6">
+        {/* ── Progress steps ── */}
+        <div className="relative flex flex-row justify-between w-full">
+          <div className="absolute top-4 left-[8%] right-[8%] border-t-2 border-dotted border-subtle/40 z-0" />
+          {STEP_ORDER.map((step, i) => {
+            const isActive = i <= currentIdx;
+            const isCurrent = i === currentIdx;
+            return (
+              <div key={step} className="flex flex-col items-center flex-1 z-10">
+                <div
+                  className={`w-8 h-8 rounded-full flex items-center justify-center shadow-sm text-xs transition-all duration-300 ${
+                    isCurrent
+                      ? "bg-rose text-white scale-110"
+                      : isActive
+                      ? "bg-stone-800 text-white dark:bg-stone-200 dark:text-stone-800"
+                      : "bg-surface text-secondary border border-subtle"
+                  }`}
+                >
+                  <span className="material-symbols-outlined text-sm">{STEP_ICONS[step]}</span>
+                </div>
+                <span
+                  className={`text-[10px] text-center mt-1.5 font-medium leading-tight hidden sm:block ${
+                    isCurrent ? "text-primary" : isActive ? "text-secondary" : "text-secondary/40"
+                  }`}
+                >
+                  {STEP_LABELS[step]}
                 </span>
               </div>
-              <span
-                className={`text-center text-xs sm:text-sm mt-2 font-medium ${
-                  step.active ? "text-primary" : "text-secondary"
-                }`}
-              >
-                {step.label}
-              </span>
-            </div>
-          ))}
+            );
+          })}
         </div>
 
-        {/* Drag-and-drop upload zone */}
-        <div
-          onDragEnter={handleDragEnter}
-          onDragLeave={handleDragLeave}
-          onDragOver={handleDragOver}
-          onDrop={handleDrop}
-          onClick={() => fileInputRef.current?.click()}
-          className={`w-full bg-surface border-2 border-dashed rounded-2xl p-10 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 min-h-[220px] relative overflow-hidden group animate-fade-in-up ${
-            isDragging
-              ? "border-rose bg-rose/5 shadow-[0_4px_20px_rgba(196,154,154,0.15)]"
-              : "border-subtle hover:border-rose/50 hover:shadow-[0_4px_20px_rgba(0,0,0,0.03)] dark:hover:border-rose/40 dark:hover:shadow-[0_4px_20px_rgba(196,154,154,0.08)]"
-          }`}
-        >
-          <input
-            ref={fileInputRef}
-            type="file"
-            multiple
-            onChange={handleFileSelect}
-            className="hidden"
-            accept="image/*,audio/*,.pdf,.doc,.docx,.txt,.mp3,.wav,.m4a"
-          />
-          <div className="w-16 h-16 rounded-full bg-stone-100 dark:bg-stone-800 flex items-center justify-center mb-5 text-rose group-hover:scale-110 transition-transform duration-500">
-            <span className="material-symbols-outlined text-4xl">
-              {isDragging ? "download" : "description"}
-            </span>
-          </div>
-          <h2 className="text-lg font-serif text-primary mb-2">
-            {isDragging ? "Let them go..." : "Drop memories here"}
+        {/* ── Current step heading ── */}
+        <div>
+          <h2 className="text-2xl font-serif font-bold text-primary">
+            {STEP_LABELS[state.step]}
           </h2>
-          <p className="text-sm text-secondary mb-4">
-            Letters, photos, voice notes — anything that holds their voice
-          </p>
-          <span className="px-6 py-3 rounded-full font-bold bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 hover:opacity-90 transition-all btn-press text-sm">
-            Browse Files
-          </span>
-          <p className="text-[10px] font-medium text-secondary/60 mt-3">
-            Supports PDF, DOCX, TXT, JPG, PNG, MP3, WAV
+          <p className="text-xs text-secondary/60 mt-1">
+            Step {currentIdx + 1} of {STEP_ORDER.length}
           </p>
         </div>
 
-        {/* Selected files list */}
-        {files.length > 0 && (
-          <div className="space-y-2 animate-slide-down">
-            <h3 className="text-xs font-bold uppercase tracking-widest text-secondary ml-1 mb-3">
-              Selected Memories ({files.length})
-            </h3>
-            {files.map((f, i) => (
-              <div
-                key={f.id}
-                className="flex items-center gap-4 bg-surface border border-subtle/60 rounded-xl p-4 shadow-[0_2px_8px_rgba(0,0,0,0.02)] animate-fade-in-up"
-                style={{ animationDelay: `${i * 60}ms` }}
-              >
-                {/* Preview thumbnail or icon */}
-                <div className="w-10 h-10 rounded-lg bg-stone-100 dark:bg-stone-800 flex items-center justify-center flex-shrink-0 overflow-hidden">
-                  {f.preview ? (
-                    <img
-                      src={f.preview}
-                      alt={f.file.name}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="material-symbols-outlined text-secondary/60 text-xl">
-                      {fileIcon(f.file.type)}
-                    </span>
-                  )}
-                </div>
+        {/* ── Step content ── */}
+        <div className="flex-1">{renderStep()}</div>
 
-                {/* File info */}
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm font-medium text-primary truncate">
-                    {f.file.name}
-                  </p>
-                  <p className="text-xs text-secondary/70">
-                    {formatSize(f.file.size)}
-                  </p>
-                </div>
-
-                {/* Remove button */}
-                <button
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    removeFile(f.id);
-                  }}
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-secondary/60 hover:text-rose hover:bg-rose/10 dark:hover:bg-rose/15 transition-all duration-200 btn-press flex-shrink-0"
-                  aria-label={`Remove ${f.file.name}`}
-                >
-                  <span className="material-symbols-outlined text-lg">close</span>
-                </button>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {/* Begin Distillation CTA */}
-        <div className="flex flex-col items-center gap-4 pt-4 animate-fade-in-up stagger-3">
-          <button
-            onClick={handleDistill}
-            disabled={files.length === 0 || isDistilling}
-            className={`w-full py-4 rounded-2xl font-bold text-lg transition-all duration-300 btn-press ${
-              files.length > 0 && !isDistilling
-                ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900 hover:shadow-lg hover:-translate-y-0.5"
-                : "bg-stone-200 dark:bg-stone-700 text-stone-400 dark:text-stone-500 cursor-not-allowed"
-            }`}
-          >
-            {isDistilling
-              ? "Distilling... This may take a moment"
-              : files.length > 0
-                ? `Begin Distillation — ${files.length} file${files.length !== 1 ? "s" : ""}`
-                : "Add memories to begin"}
-          </button>
-          <p className="text-xs text-secondary/60 text-center max-w-xs">
-            Your memories are encrypted, private, and never used to train public
-            models.
-          </p>
-        </div>
-
-        {/* Privacy reassurance */}
-        <div className="bg-surface border border-subtle/60 rounded-2xl p-5 flex items-start gap-4 shadow-sm animate-fade-in-up stagger-4">
-          <div className="text-rose mt-0.5 flex-shrink-0">
-            <span className="material-symbols-outlined">lock</span>
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-primary mb-1 font-serif">
-              A Safe Space
-            </h3>
-            <p className="text-xs text-secondary leading-relaxed">
-              Your memories are encrypted, private, and belong solely to you and
-              your heirloom. Nothing is ever used to train public models.
-            </p>
-          </div>
+        {/* ── Navigation buttons ── */}
+        <div className="flex gap-3 pt-4 border-t border-subtle/30">
+          {!isFirst && (
+            <button
+              onClick={goPrev}
+              className="flex-1 py-3.5 rounded-2xl font-medium bg-surface text-primary border border-subtle shadow-sm btn-press"
+            >
+              Back
+            </button>
+          )}
+          {!isLast && (
+            <button
+              onClick={goNext}
+              disabled={!canProceed}
+              className={`flex-1 py-3.5 rounded-2xl font-bold shadow-sm btn-press ${
+                canProceed
+                  ? "bg-stone-900 text-white dark:bg-stone-100 dark:text-stone-900"
+                  : "bg-surface text-secondary/40 border border-subtle/40 cursor-not-allowed"
+              }`}
+            >
+              Continue
+            </button>
+          )}
         </div>
       </main>
 

@@ -35,6 +35,12 @@ export async function updateSession(request: NextRequest) {
     request.nextUrl.pathname.startsWith(route),
   );
   const isRoot = request.nextUrl.pathname === "/";
+  const isGuest = request.cookies.get("guest_mode")?.value === "true";
+
+  // Guest mode — allow protected routes
+  if (!user && isProtectedRoute && isGuest) {
+    return supabaseResponse;
+  }
 
   // No session → redirect protected routes to /
   if (!user && isProtectedRoute) {
