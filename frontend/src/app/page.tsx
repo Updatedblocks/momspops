@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useEffect, useRef } from "react";
+import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
 
 declare global {
@@ -280,13 +281,13 @@ export default function WelcomePage() {
       <footer className="mt-10 text-center px-4 w-full animate-fade-in-up stagger-4">
         <p className="text-xs text-secondary/70">
           By continuing, you agree to our{" "}
-          <span className="text-rose underline underline-offset-4 decoration-rose/30 cursor-pointer">
+          <Link href="/legal/terms" className="text-rose underline underline-offset-4 decoration-rose/30">
             Terms of Service
-          </span>{" "}
+          </Link>{" "}
           and{" "}
-          <span className="text-rose underline underline-offset-4 decoration-rose/30 cursor-pointer">
+          <Link href="/legal/privacy" className="text-rose underline underline-offset-4 decoration-rose/30">
             Privacy Policy
-          </span>
+          </Link>
         </p>
       </footer>
     </div>

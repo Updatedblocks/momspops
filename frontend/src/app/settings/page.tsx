@@ -244,18 +244,21 @@ export default function SettingsPage() {
 
         {legalOpen && (
           <div className="bg-surface rounded-2xl p-5 border border-subtle/60 shadow-sm flex flex-col gap-4 mb-2 animate-slide-down">
-            {["Terms of Service", "Privacy Manifesto", "Data Ethics Policy"].map(
+            {[
+              { label: "Terms of Service", href: "/legal/terms" },
+              { label: "Privacy Policy", href: "/legal/privacy" },
+            ].map(
               (item) => (
-                <div key={item}>
-                  <div className="group flex items-center justify-between cursor-pointer">
+                <div key={item.label}>
+                  <Link href={item.href} className="group flex items-center justify-between">
                     <span className="font-body-lg text-body-lg text-primary group-hover:text-rose transition-colors">
-                      {item}
+                      {item.label}
                     </span>
                     <span className="material-symbols-outlined text-secondary/60 group-hover:text-rose transition-colors">
                       arrow_forward_ios
                     </span>
-                  </div>
-                  {item !== "Data Ethics Policy" && (
+                  </Link>
+                  {item.label !== "Privacy Policy" && (
                     <div className="w-full h-px bg-header mt-6" />
                   )}
                 </div>
