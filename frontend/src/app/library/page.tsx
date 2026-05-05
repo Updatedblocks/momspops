@@ -142,17 +142,6 @@ export default function LibraryPage() {
       </header>
 
       <main className="flex-grow w-full max-w-2xl mx-auto px-6 py-6 flex flex-col gap-4">
-        {/* Thought of the Day — always shows */}
-        <section className="rounded-2xl bg-surface border border-subtle/60 p-5 shadow-sm relative overflow-hidden animate-fade-in-up">
-          <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/10 to-transparent dark:via-white/5 pointer-events-none" />
-          <p className="text-xs font-bold uppercase tracking-widest text-secondary mb-3 opacity-80">
-            Thought of the Day
-          </p>
-          <p className="font-serif text-lg text-primary italic leading-relaxed">
-            &ldquo;The things you hide in your heart are the things that keep you
-            alive.&rdquo;
-          </p>
-        </section>
 
         {/* ── Loading state ─────────────────────────── */}
         {loading && (
