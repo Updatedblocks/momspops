@@ -463,7 +463,7 @@ export default function DistillPage() {
         </div>
       </header>
 
-      <main ref={mainRef} className="flex-grow w-full max-w-2xl mx-auto px-6 py-6 flex flex-col gap-6 overflow-y-auto">
+      <main ref={mainRef} className="flex-grow w-full max-w-2xl mx-auto px-6 py-6 pb-32 flex flex-col gap-6 overflow-y-auto">
         {/* ── Progress steps ── */}
         <div className="relative flex flex-row justify-between w-full">
           <div className="absolute top-4 left-[8%] right-[8%] border-t-2 border-dotted border-subtle/40 z-0" />
