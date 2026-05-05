@@ -145,10 +145,10 @@ export default function LibraryPage() {
 
 
         {/* ── What We Do ────────────────────────────── */}
-        {!loading && personas.length > 0 && (
-          <section className="text-center py-2 animate-fade-in-up">
+        {!loading && personas.length >= 0 && (
+          <section className="text-center py-3 animate-fade-in-up">
             <p className="font-serif text-sm text-secondary/80 italic leading-relaxed max-w-xs mx-auto">
-              Every circle holds a voice. Tap one to talk — we handle the rest.
+              Give a loved one their voice. Carry on their legacy — forever guiding, forever wise.
             </p>
           </section>
         )}
@@ -217,6 +217,20 @@ export default function LibraryPage() {
                 </div>
                 <span className="text-xs text-secondary group-hover:text-primary transition-colors">
                   Add
+                </span>
+              </Link>
+
+              {/* Premium / Tier Up */}
+              <Link
+                href="/settings?tab=upgrade"
+                className="flex flex-col items-center gap-2 cursor-pointer group animate-fade-in-up"
+                style={{ animationDelay: `${(readyPersonas.length + 1) * 80}ms` }}
+              >
+                <div className="w-20 h-20 rounded-full border-2 border-amber-300/60 dark:border-amber-500/40 bg-amber-50 dark:bg-amber-950/30 flex items-center justify-center text-amber-600 dark:text-amber-400 group-hover:scale-110 group-hover:shadow-lg group-hover:shadow-amber-500/20 transition-all duration-300 relative">
+                  <span className="material-symbols-outlined text-3xl">crown</span>
+                </div>
+                <span className="text-xs text-secondary group-hover:text-amber-600 dark:group-hover:text-amber-400 transition-colors">
+                  Upgrade
                 </span>
               </Link>
             </div>
