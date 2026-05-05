@@ -143,6 +143,16 @@ export default function LibraryPage() {
 
       <main className="flex-grow w-full max-w-2xl mx-auto px-6 py-6 flex flex-col gap-4">
 
+
+        {/* ── What We Do ────────────────────────────── */}
+        {!loading && personas.length > 0 && (
+          <section className="text-center py-2 animate-fade-in-up">
+            <p className="font-serif text-sm text-secondary/80 italic leading-relaxed max-w-xs mx-auto">
+              Every circle holds a voice. Tap one to talk — we handle the rest.
+            </p>
+          </section>
+        )}
+
         {/* ── Loading state ─────────────────────────── */}
         {loading && (
           <div className="flex justify-center py-12">
