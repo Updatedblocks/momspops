@@ -20,6 +20,8 @@ export default function PersonaManagePage() {
   const [origName, setOrigName] = useState("");
   const [origRelation, setOrigRelation] = useState("");
   const [origAvatarUrl, setOrigAvatarUrl] = useState<string | null>(null);
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [deleting, setDeleting] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // ── Fetch persona from Supabase ─────────────────────
@@ -89,6 +91,45 @@ export default function PersonaManagePage() {
       .eq("id", personaId);
 
     router.back();
+  };
+
+  const handleDelete = async () => {
+    setDeleting(true);
+    const supabase = createClient();
+
+    try {
+      // 1. Delete chat logs
+      await supabase.from("chat_logs").delete().eq("persona_id", personaId);
+
+      // 2. Delete avatar from storage
+      const { data: files } = await supabase.storage
+        .from("persona-avatars")
+        .list(personaId, { limit: 10 });
+      if (files?.length) {
+        await supabase.storage
+          .from("persona-avatars")
+          .remove(files.map((f) => `${personaId}/${f.name}`));
+      }
+
+      // 3. Delete memory files from storage (staging + any uploads)
+      const { data: memFiles } = await supabase.storage
+        .from("memories")
+        .list(personaId, { limit: 100 });
+      if (memFiles?.length) {
+        await supabase.storage
+          .from("memories")
+          .remove(memFiles.map((f) => `${personaId}/${f.name}`));
+      }
+
+      // 4. Delete the persona itself
+      await supabase.from("personas").delete().eq("id", personaId);
+
+      router.push("/library");
+    } catch (err) {
+      setDeleting(false);
+      setShowDeleteConfirm(false);
+      alert("Delete failed. Please try again.");
+    }
   };
 
   const handleBack = () => {
@@ -205,12 +246,45 @@ export default function PersonaManagePage() {
 
         {/* Archive & Delete */}
         <section className="mt-8 flex flex-col items-center gap-4">
-          <button className="w-full max-w-sm py-4 px-6 rounded-full border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all duration-300 flex items-center justify-center gap-2 group btn-press">
-            <span className="material-symbols-outlined text-lg group-hover:scale-110 transition-transform duration-300">
-              delete
-            </span>
-            <span className="font-medium text-sm">Archive &amp; Delete Persona</span>
-          </button>
+          {!showDeleteConfirm ? (
+            <button
+              onClick={() => setShowDeleteConfirm(true)}
+              className="w-full max-w-sm py-4 px-6 rounded-full border border-red-200 dark:border-red-900/50 text-red-700 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-950/30 transition-all duration-300 flex items-center justify-center gap-2 group btn-press"
+            >
+              <span className="material-symbols-outlined text-lg group-hover:scale-110 transition-transform duration-300">
+                delete
+              </span>
+              <span className="font-medium text-sm">Archive &amp; Delete Persona</span>
+            </button>
+          ) : (
+            <div className="w-full max-w-sm bg-red-50 dark:bg-red-950/20 border border-red-200 dark:border-red-800/40 rounded-2xl p-5 space-y-4">
+              <div className="flex items-start gap-3">
+                <span className="material-symbols-outlined text-red-600 text-2xl flex-shrink-0 mt-0.5">warning</span>
+                <div>
+                  <p className="font-bold text-red-700 dark:text-red-400 text-sm">Permanently delete {name || "this persona"}?</p>
+                  <p className="text-xs text-red-600/70 dark:text-red-400/70 mt-1">
+                    This will erase all chat history, memories, and the distilled soul. This action cannot be undone.
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowDeleteConfirm(false)}
+                  disabled={deleting}
+                  className="flex-1 py-2.5 rounded-full font-medium text-sm border border-subtle text-secondary hover:bg-surface transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleDelete}
+                  disabled={deleting}
+                  className="flex-1 py-2.5 rounded-full font-bold text-sm bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
+                >
+                  {deleting ? "Deleting..." : "Yes, Delete Forever"}
+                </button>
+              </div>
+            </div>
+          )}
           <p className="text-xs text-secondary text-center max-w-sm leading-relaxed">
             All associated memory data will be permanently wiped from the servers.
           </p>

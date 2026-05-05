@@ -1,6 +1,6 @@
 "use client";
 
-import { useReducer, useState, useRef, useMemo, useCallback } from "react";
+import { useReducer, useState, useRef, useMemo, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { createClient } from "@/utils/supabase/client";
@@ -53,6 +53,7 @@ export default function DistillPage() {
   const [avatarFile, setAvatarFile] = useState<File | null>(null);
   const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const mainRef = useRef<HTMLDivElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
@@ -60,6 +61,11 @@ export default function DistillPage() {
   const isFirst = currentIdx === 0;
   const isLast = currentIdx === STEP_ORDER.length - 1;
   const density = calcDensity(state, !!voiceBlob, archiveFiles.length > 0);
+
+  // Scroll to top when step changes
+  useEffect(() => {
+    mainRef.current?.scrollIntoView({ behavior: "smooth", block: "start" });
+  }, [state.step]);
 
   // ── Voice recording ──
   const startRecording = async () => {
@@ -457,7 +463,7 @@ export default function DistillPage() {
         </div>
       </header>
 
-      <main className="flex-grow w-full max-w-2xl mx-auto px-6 py-6 flex flex-col gap-6">
+      <main ref={mainRef} className="flex-grow w-full max-w-2xl mx-auto px-6 py-6 flex flex-col gap-6">
         {/* ── Progress steps ── */}
         <div className="relative flex flex-row justify-between w-full">
           <div className="absolute top-4 left-[8%] right-[8%] border-t-2 border-dotted border-subtle/40 z-0" />
