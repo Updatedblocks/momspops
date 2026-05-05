@@ -173,49 +173,41 @@ export default function LibraryPage() {
             <h2 className="text-xs font-bold uppercase tracking-widest text-secondary mb-3 mt-8 ml-1">
               Your Circle
             </h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
+            <div className="flex flex-wrap justify-center gap-6">
               {readyPersonas.map((persona, i) => (
                 <Link
                   key={persona.id}
                   href={`/chat/${persona.id}`}
-                  className={`bg-surface rounded-3xl p-5 flex flex-col items-center gap-2 border border-subtle/60 shadow-sm transition-all duration-300 hover:shadow-md hover:-translate-y-1 cursor-pointer relative overflow-hidden group btn-press animate-fade-in-up stagger-${Math.min(i + 1, 5)}`}
+                  className="flex flex-col items-center gap-2 cursor-pointer group animate-fade-in-up"
+                  style={{ animationDelay: `${i * 80}ms` }}
                 >
-                  {/* Watermark icon */}
-                  <span className="material-symbols-outlined text-[100px] text-sand/20 dark:text-sand/10 absolute bottom-[-20%] right-[-10%] opacity-5 scale-150 -rotate-[15deg] pointer-events-none">
-                    auto_awesome
-                  </span>
-                  {/* Avatar */}
-                  <div className="w-16 h-16 rounded-full bg-muted flex items-center justify-center border-2 border-subtle/60 shadow-sm group-hover:scale-110 transition-transform duration-500 overflow-hidden">
+                  <div className="w-20 h-20 rounded-full bg-muted flex items-center justify-center border-2 border-subtle/60 shadow-sm group-hover:scale-125 group-hover:shadow-xl group-hover:border-rose/40 transition-all duration-300 overflow-hidden">
                     {persona.avatar_url ? (
                       <img src={persona.avatar_url} alt={persona.name} className="w-full h-full object-cover" />
                     ) : (
-                      <span className="font-serif text-h2 text-primary/70">
+                      <span className="font-serif text-2xl text-primary/70 group-hover:text-primary transition-colors">
                         {persona.name.charAt(0)}
                       </span>
                     )}
                   </div>
-                  <div className="text-center z-10">
-                    <h3 className="font-serif text-base text-primary">
-                      {persona.name}
-                    </h3>
-                    <p className="text-xs text-secondary/70">
-                      {persona.relation}
-                    </p>
-                  </div>
+                  <span className="text-xs font-medium text-primary group-hover:text-rose transition-colors">
+                    {persona.name}
+                  </span>
                 </Link>
               ))}
 
               {/* Add New */}
               <Link
                 href="/distill"
-                className="bg-transparent border border-dashed border-subtle rounded-xl p-4 flex flex-col items-center justify-center gap-3 hover:bg-surface transition-all duration-200 cursor-pointer group min-h-[140px] btn-press animate-fade-in-up stagger-4"
+                className="flex flex-col items-center gap-2 cursor-pointer group animate-fade-in-up"
+                style={{ animationDelay: `${readyPersonas.length * 80}ms` }}
               >
-                <div className="w-12 h-12 rounded-full bg-surface flex items-center justify-center text-secondary group-hover:text-primary group-hover:scale-110 transition-all duration-300">
-                  <span className="material-symbols-outlined">add</span>
+                <div className="w-20 h-20 rounded-full border-2 border-dashed border-subtle/60 bg-surface flex items-center justify-center text-secondary group-hover:border-rose/50 group-hover:text-rose group-hover:scale-110 transition-all duration-300">
+                  <span className="material-symbols-outlined text-3xl">add</span>
                 </div>
-                <p className="text-sm text-secondary text-center">
-                  Add a loved one
-                </p>
+                <span className="text-xs text-secondary group-hover:text-primary transition-colors">
+                  Add
+                </span>
               </Link>
             </div>
           </section>
