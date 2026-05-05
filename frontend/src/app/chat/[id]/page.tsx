@@ -153,33 +153,17 @@ export default function ChatPage() {
       const reader = response.body?.getReader();
       if (!reader) throw new Error("No response stream");
 
-      const decoder = new TextDecoder();
-      let buffer = "";
+      // Read full response as text (AI SDK v6 toTextStreamResponse produces plain text)
+      const fullText = await response.text();
 
-      while (true) {
-        const { done, value } = await reader.read();
-        if (done) break;
-
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop() || "";
-
-        for (const line of lines) {
-          if (line.startsWith("0:")) {
-            try {
-              const text = JSON.parse(line.slice(2));
-              setMessages((prev) =>
-                prev.map((m) =>
-                  m.id === modelMsgId
-                    ? { ...m, content: m.content + text }
-                    : m,
-                ),
-              );
-            } catch {
-              // skip malformed
-            }
-          }
-        }
+      if (fullText.trim()) {
+        setMessages((prev) =>
+          prev.map((m) =>
+            m.id === modelMsgId
+              ? { ...m, content: fullText }
+              : m,
+          ),
+        );
       }
     } catch (err) {
       setError((err as Error).message);
