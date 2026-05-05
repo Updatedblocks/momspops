@@ -10,12 +10,12 @@ interface PaywallProps {
 const TIERS = [
   {
     name: "Echoes",
-    price: "$4",
+    price: "$9",
     tagline: "Begin preserving",
     features: [
-      "Written journal entries",
-      "Guided memory prompts",
-      "1 persona / loved one",
+      "AI-powered chat with 1 persona",
+      "Full distillation wizard",
+      "Chat history & memory",
       "Text-based legacy building",
     ],
     accent: "from-sand/20 to-sand/5",
@@ -25,15 +25,15 @@ const TIERS = [
   },
   {
     name: "Voice",
-    price: "$9",
+    price: "$19",
     tagline: "Hear them again",
     popular: true,
     features: [
       "Everything in Echoes",
-      "Audio recordings & playback",
-      "Conversational legacy mode",
       "3 personas / loved ones",
       "Voice tone calibration",
+      "Priority AI responses",
+      "Early access to audio features",
     ],
     accent: "from-rose/20 to-rose/5",
     border: "border-rose/40 hover:border-rose/70",
@@ -42,7 +42,7 @@ const TIERS = [
   },
   {
     name: "Presence",
-    price: "$15",
+    price: "$39",
     tagline: "The complete archive",
     features: [
       "Everything in Voice",
@@ -50,7 +50,7 @@ const TIERS = [
       "Dedicated family vault",
       "Photo & video memories",
       "Priority legacy access",
-      "Early access to new features",
+      "Founding member badge",
     ],
     accent: "from-sage/20 to-sage/5",
     border: "border-sage/30 hover:border-sage/60",
@@ -201,6 +201,12 @@ export default function Paywall({ open, onClose }: PaywallProps) {
               </span>
             </button>
             <p className="text-[11px] text-secondary/60 mt-1">Cancel anytime · No commitments</p>
+            <div className="mt-4 px-4 py-3 rounded-2xl bg-amber-50/50 dark:bg-amber-950/20 border border-amber-200/60 dark:border-amber-800/30 max-w-md">
+              <p className="text-[11px] text-amber-700 dark:text-amber-400 leading-relaxed text-center">
+                <span className="font-bold">Early Access —</span> Features above are in active development and depend on the success of our launch. 
+                Pricing reflects our pre-scale phase and will increase as we grow. By subscribing now, you are directly fueling the infra, training, and stress testing that make this possible.
+              </p>
+            </div>
             <button className="text-xs text-secondary hover:text-primary transition-colors duration-200 underline underline-offset-4 mt-1">
               Restore Purchases
             </button>
