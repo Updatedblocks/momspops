@@ -3,6 +3,7 @@
 import { useReducer, useState, useRef, useMemo, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { createClient } from "@/utils/supabase/client";
 import BottomNav from "@/components/BottomNav";
 import { SlidersStep } from "@/components/SlidersStep";
 import { DensityMeter } from "@/components/DensityMeter";
@@ -49,6 +50,9 @@ export default function DistillPage() {
   const [distilling, setDistilling] = useState(false);
   const [distillProgress, setDistillProgress] = useState(0);
   const [distillError, setDistillError] = useState("");
+  const [avatarFile, setAvatarFile] = useState<File | null>(null);
+  const [avatarPreview, setAvatarPreview] = useState<string | null>(null);
+  const avatarInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
 
@@ -118,9 +122,25 @@ export default function DistillPage() {
     dispatch({ type: "CLEAR_QA" });
     qaAnswers.forEach((qa) => dispatch({ type: "ADD_QA", payload: qa }));
 
+    // Upload avatar if selected
+    let avatarUrl: string | null = null;
+    if (avatarFile) {
+      const supabase = createClient();
+      const ext = avatarFile.name.split(".").pop() || "jpg";
+      const tempId = `distill_${Date.now()}`;
+      const path = `${tempId}/${Date.now()}.${ext}`;
+      const { error } = await supabase.storage
+        .from("persona-avatars")
+        .upload(path, avatarFile, { upsert: true, contentType: avatarFile.type });
+      if (!error) {
+        const { data } = supabase.storage.from("persona-avatars").getPublicUrl(path);
+        avatarUrl = data.publicUrl;
+      }
+    }
+
     const result = await stageAndDistill({
       userId,
-      identity: state.identity,
+      identity: { ...state.identity, avatar_url: avatarUrl },
       qaAnswers,
       sliderMetrics: state.slider_metrics,
       voiceBlob,
@@ -169,6 +189,52 @@ export default function DistillPage() {
                   onChange={(e) => dispatch({ type: "SET_IDENTITY", payload: { ...state.identity, relation: e.target.value } })}
                   placeholder="e.g. Grandmother, Mentor, Old Friend"
                   className="w-full py-3.5 px-5 rounded-2xl bg-surface text-primary border border-subtle shadow-sm placeholder:text-secondary/50 outline-none focus:border-rose/50 transition-colors"
+                />
+              </div>
+              {/* Avatar upload */}
+              <div>
+                <label className="text-xs font-bold uppercase tracking-widest text-secondary mb-2 block">
+                  Their Photo <span className="text-secondary/40 font-normal">(optional)</span>
+                </label>
+                <div className="flex items-center gap-4">
+                  <div
+                    onClick={() => avatarInputRef.current?.click()}
+                    className="w-20 h-20 rounded-full overflow-hidden border-2 border-dashed border-subtle/60 bg-surface flex items-center justify-center cursor-pointer hover:border-rose/50 transition-colors flex-shrink-0"
+                  >
+                    {avatarPreview ? (
+                      <img src={avatarPreview} alt="Avatar preview" className="w-full h-full object-cover" />
+                    ) : state.identity.name ? (
+                      <span className="font-serif text-2xl text-primary/40">{state.identity.name.charAt(0)}</span>
+                    ) : (
+                      <span className="material-symbols-outlined text-3xl text-secondary/30">photo_camera</span>
+                    )}
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <p className="text-xs text-secondary">
+                      {avatarFile ? avatarFile.name : "Tap to add a photo"}
+                    </p>
+                    {avatarFile && (
+                      <button
+                        onClick={() => { setAvatarFile(null); setAvatarPreview(null); }}
+                        className="text-xs text-rose underline underline-offset-4 text-left"
+                      >
+                        Remove
+                      </button>
+                    )}
+                  </div>
+                </div>
+                <input
+                  ref={avatarInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  className="hidden"
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) {
+                      setAvatarFile(file);
+                      setAvatarPreview(URL.createObjectURL(file));
+                    }
+                  }}
                 />
               </div>
             </div>
@@ -337,6 +403,12 @@ export default function DistillPage() {
             <div className="bg-surface rounded-2xl border border-subtle/60 p-5 space-y-3">
               <h3 className="font-serif text-lg text-primary">Soul Summary</h3>
               <div className="text-sm text-secondary space-y-1">
+                {avatarPreview && (
+                  <div className="flex items-center gap-3 mb-3 pb-3 border-b border-subtle/40">
+                    <img src={avatarPreview} alt="Avatar" className="w-12 h-12 rounded-full object-cover border border-subtle/60" />
+                    <span className="text-primary font-medium">Photo added</span>
+                  </div>
+                )}
                 <p><strong className="text-primary">Name:</strong> {state.identity.name || "—"}</p>
                 <p><strong className="text-primary">Relation:</strong> {state.identity.relation || "—"}</p>
                 <p><strong className="text-primary">Interview:</strong> {Object.keys(answers).filter((k) => answers[+k]?.trim()).length}/5 answered</p>
