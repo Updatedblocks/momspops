@@ -359,7 +359,7 @@ export default function ChatPage() {
       {/* Input area */}
       <form
         onSubmit={onSubmit}
-        className="fixed bottom-0 w-full max-w-md mx-auto left-0 right-0 bg-surface border-t border-subtle z-40 pb-[72px] md:pb-safe"
+        className="w-full max-w-md mx-auto bg-surface border-t border-subtle z-40 shrink-0"
       >
         {/* Reply preview bar */}
         {replyingTo && (
