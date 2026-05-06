@@ -109,7 +109,13 @@ export async function stageAndDistill({
       }
     );
 
-    if (fnError) throw new Error(`Edge function failed: ${fnError.message}`);
+    if (fnError) {
+      // Try to extract the actual error from the response
+      const errMsg = (fnError as any).message || fnError;
+      const ctx = (fnError as any).context;
+      const detail = ctx ? ` (${JSON.stringify(ctx)})` : '';
+      throw new Error(`Edge function failed: ${errMsg}${detail}`);
+    }
 
     return {
       success: true,
