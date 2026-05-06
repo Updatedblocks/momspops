@@ -37,7 +37,7 @@ export async function stageAndDistill({
   onProgress,
 }: StagingPayload): Promise<StagingResult> {
   const sessionId = generateSessionId();
-  const stagingPath = `${userId}/staging/${sessionId}`;
+  const stagingPath = `${userId}/${sessionId}`;
   const supabase = createClient();
 
   let uploaded = 0;

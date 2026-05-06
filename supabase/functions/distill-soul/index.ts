@@ -155,7 +155,7 @@ Deno.serve(async (req: Request) => {
     }
 
     // ── Parse Payload ───────────────────────────────────────
-    const { batchId, userId, personaId, personaName = "Untitled", personaRelation = "Loved One" } = await req.json();
+    const { sessionId: batchId, userId, personaId, personaName = "Untitled", personaRelation = "Loved One" } = await req.json();
 
     if (!batchId || !userId) {
       return new Response(JSON.stringify({ error: "Missing batchId or userId" }), {
