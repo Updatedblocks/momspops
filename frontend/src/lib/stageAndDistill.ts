@@ -110,7 +110,9 @@ export async function stageAndDistill({
     );
 
     if (fnError) {
-      // Try to extract the actual error from the response
+      // Clean up the stub persona on failure
+      await supabase.from("personas").delete().eq("id", stubPersona.id);
+      
       const errMsg = (fnError as any).message || fnError;
       const ctx = (fnError as any).context;
       const detail = ctx ? ` (${JSON.stringify(ctx)})` : '';
